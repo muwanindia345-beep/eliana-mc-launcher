@@ -229,4 +229,4 @@ async def on_ready():
     client.add_view(TrfPanel())
     update.start(); save()
 
-# client.run(BOT_TOKEN)
+client.run(BOT_TOKEN)

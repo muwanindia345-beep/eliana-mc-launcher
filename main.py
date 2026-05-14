@@ -1,11 +1,7 @@
-import asyncio
+import subprocess
 import threading
 import os
 from flask import Flask, send_from_directory
-from dotenv import load_dotenv
-
-load_dotenv()
-BOT_TOKEN = os.environ.get('BOT_TOKEN')
 
 app = Flask(__name__)
 
@@ -20,22 +16,18 @@ def serve_file(filename):
     except:
         return "Not found", 404
 
-def run_flask():
+def run_bot(bot_file):
+    subprocess.run(['python', bot_file], cwd='/app')
+
+if __name__ == '__main__':
+    # Dono bots alag threads mein chalao
+    t1 = threading.Thread(target=run_bot, args=['generator_bot.py'])
+    t2 = threading.Thread(target=run_bot, args=['transformer_bot.py'])
+    t1.daemon = True
+    t2.daemon = True
+    t1.start()
+    t2.start()
+    print("✅ Both bots started!")
+
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)
-
-async def main():
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
-    print("✅ Web server started!")
-
-    from generator_bot  import client as gen_client,  on_ready as gen_ready
-    from transformer_bot import client as trf_client, on_ready as trf_ready
-
-    await asyncio.gather(
-        gen_client.start(BOT_TOKEN),
-        trf_client.start(BOT_TOKEN),
-    )
-
-asyncio.run(main())
