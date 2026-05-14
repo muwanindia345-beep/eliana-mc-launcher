@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔌 Substation</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#060a0f; overflow:hidden; font-family:'Courier New',monospace; }
+canvas { display:block; }
+#ui { position:fixed; top:14px; left:14px; z-index:10; }
+#ui h1 { font-size:0.9rem; letter-spacing:3px; color:#00cfff; text-shadow:0 0 10px #00cfff77; }
+#ui p  { font-size:0.52rem; color:#444; letter-spacing:2px; margin-top:2px; }
+#stats { position:fixed; top:14px; right:14px; text-align:right; z-index:10; }
+.sr { margin-bottom:8px; }
+.sl { font-size:0.5rem; letter-spacing:2px; color:#555; display:block; }
+.sv { font-size:1.2rem; display:block; line-height:1.1; }
+#v-in  { color:#ff6600; text-shadow:0 0 8px #ff660066; }
+#v-out { color:#00cfff; text-shadow:0 0 8px #00cfff66; }
+#load  { color:#ffcc00; text-shadow:0 0 8px #ffcc0066; }
+#brkr  { color:#00ff88; text-shadow:0 0 8px #00ff8866; }
+#controls {
+  position:fixed; bottom:14px; left:50%;
+  transform:translateX(-50%);
+  display:flex; gap:8px; z-index:10;
+}
+button {
+  background:#111; border:1px solid #333; color:#888;
+  padding:8px 16px; font-family:'Courier New',monospace;
+  font-size:0.65rem; letter-spacing:2px; cursor:pointer;
+  transition:all 0.2s; text-transform:uppercase; border-radius:2px;
+}
+button:hover { border-color:#00cfff; color:#00cfff; }
+button.active { background:#001a22; border-color:#00cfff; color:#00cfff; box-shadow:0 0 8px #00cfff44; }
+#trip-btn { border-color:#aa2200; color:#aa2200; }
+#trip-btn:hover { background:#1a0800; box-shadow:0 0 8px #ff440044; }
+#trip-btn.tripped { border-color:#ff4400; color:#ff4400; animation:blink 0.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
+</head>
+<body>
+<div id="ui">
+  <h1>🔌 STEP-DOWN SUBSTATION</h1>
+  <p>DRAG TO ROTATE  •  SCROLL TO ZOOM</p>
+</div>
+<div id="stats">
+  <div class="sr"><span class="sl">INPUT</span><span class="sv" id="v-in">11 <small style="font-size:0.7rem">kV</small></span></div>
+  <div class="sr"><span class="sl">OUTPUT</span><span class="sv" id="v-out">415 <small style="font-size:0.7rem">V</small></span></div>
+  <div class="sr"><span class="sl">LOAD</span><span class="sv" id="load">0.0 <small style="font-size:0.7rem">MW</small></span></div>
+  <div class="sr"><span class="sl">BREAKER</span><span class="sv" id="brkr">OPEN</span></div>
+</div>
+<div id="controls">
+  <button id="norm-btn" onclick="setMode('normal')" class="active">⚡ NORMAL</button>
+  <button id="ovld-btn" onclick="setMode('overload')">⚠️ OVERLOAD</button>
+  <button id="trip-btn" onclick="setMode('trip')">☠️ TRIP</button>
+  <button onclick="resetBreaker()">🔄 RESET</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── SCENE ──
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x060a0f);
+scene.fog = new THREE.Fog(0x060a0f, 40, 100);
+
+const camera = new THREE.PerspectiveCamera(52, innerWidth/innerHeight, 0.1, 200);
+camera.position.set(12, 14, 28);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.appendChild(renderer.domElement);
+
+// ── LIGHTS ──
+scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+const sun = new THREE.DirectionalLight(0xffd5a0, 1.5);
+sun.position.set(15, 25, 15);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 100;
+sun.shadow.camera.left = -30;
+sun.shadow.camera.right = 30;
+sun.shadow.camera.top = 30;
+sun.shadow.camera.bottom = -30;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0x8899cc, 0.4);
+fill.position.set(-10, 5, -10);
+scene.add(fill);
+
+// Dynamic lights
+const arcLight = new THREE.PointLight(0x4488ff, 0, 12);
+arcLight.position.set(0, 8, 0);
+scene.add(arcLight);
+const tripLight = new THREE.PointLight(0xff4400, 0, 20);
+tripLight.position.set(0, 5, 0);
+scene.add(tripLight);
+
+// ── MATERIALS ──
+const M  = (c,m=0.8,r=0.3) => new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r});
+const Mc = (c,r=0.9) => new THREE.MeshStandardMaterial({color:c,metalness:0.1,roughness:r});
+const Me = (c,ei=1) => new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:ei,metalness:0.1,roughness:0.5});
+
+const matSteel    = M(0x445566, 0.95, 0.2);
+const matDkSteel  = M(0x223344, 0.9, 0.3);
+const matGreen    = M(0x1a3a1a, 0.7, 0.5);
+const matGreenBrt = M(0x2a5a2a, 0.7, 0.4);
+const matInsul    = Mc(0xddeecc, 0.6);
+const matConcrete = Mc(0x888880, 0.95);
+const matGround   = Mc(0x1a1a14, 0.95);
+const matCopper   = M(0xcc6600, 0.9, 0.15);
+const matRed      = Me(0xff2200, 1.2);
+const matYellow   = Me(0xffcc00, 1.2);
+const matBlue     = Me(0x2255ff, 1.2);
+const matWhite    = Me(0xffffff, 0.6);
+const matOil      = M(0x554422, 0.3, 0.7);
+const matFence    = M(0x556677, 0.8, 0.4);
+
+// ── ROOT ──
+const root = new THREE.Group();
+scene.add(root);
+
+// ── GROUND + COMPOUND ──
+const gnd = new THREE.Mesh(new THREE.PlaneGeometry(60,60), matGround);
+gnd.rotation.x = -Math.PI/2;
+gnd.receiveShadow = true;
+scene.add(gnd);
+
+// Gravel pad
+const pad = new THREE.Mesh(new THREE.PlaneGeometry(34,24), Mc(0x555550,0.95));
+pad.rotation.x = -Math.PI/2;
+pad.position.y = 0.02;
+root.add(pad);
+
+// Grid
+scene.add(new THREE.GridHelper(60,60,0xffffff05,0xffffff04));
+
+// ── PERIMETER FENCE ──
+function fencePost(x,z,h=3.5) {
+  const p = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,h,6), matFence);
+  p.position.set(x,h/2,z);
+  root.add(p);
+}
+function fencePanel(x1,z1,x2,z2) {
+  const dx=x2-x1,dz=z2-z1;
+  const len=Math.sqrt(dx*dx+dz*dz);
+  const ang=Math.atan2(dz,dx);
+  for(let i=0;i<3;i++) {
+    const wire=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,len,4), matFence);
+    wire.rotation.z=Math.PI/2;
+    wire.rotation.y=-ang;
+    wire.position.set((x1+x2)/2,1+i*1.1,(z1+z2)/2);
+    root.add(wire);
+  }
+}
+const FX=17,FZ=12;
+for(let x=-FX;x<=FX;x+=3) { fencePost(x,-FZ); fencePost(x,FZ); }
+for(let z=-FZ;z<=FZ;z+=3) { fencePost(-FX,z); fencePost(FX,z); }
+fencePanel(-FX,-FZ,FX,-FZ); fencePanel(-FX,FZ,FX,FZ);
+fencePanel(-FX,-FZ,-FX,FZ); fencePanel(FX,-FZ,FX,FZ);
+
+// ── MAIN TRANSFORMER ──
+const xfmrGrp = new THREE.Group();
+root.add(xfmrGrp);
+
+// Oil tank body
+const oilTank = new THREE.Mesh(new THREE.BoxGeometry(4,5,2.5), matGreen);
+oilTank.position.set(0,2.5,0);
+oilTank.castShadow=true;
+xfmrGrp.add(oilTank);
+
+// Corrugated panels (fins)
+for(let z=-1.0;z<=1.0;z+=0.25) {
+  const fin=new THREE.Mesh(new THREE.BoxGeometry(4.1,4.8,0.04), matGreenBrt);
+  fin.position.set(0,2.5,z);
+  xfmrGrp.add(fin);
+}
+
+// Radiator banks (cooling fins on sides)
+[-1,1].forEach(side=>{
+  for(let i=0;i<5;i++){
+    const rad=new THREE.Mesh(new THREE.BoxGeometry(0.08,3.5,0.5), M(0x1a4a1a,0.7,0.5));
+    rad.position.set(side*2.1,(i-2)*0.7+2.5,0);
+    xfmrGrp.add(rad);
+  }
+  // Radiator pipes
+  const pipe=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,3,8), M(0x2a5a2a,0.8,0.4));
+  pipe.position.set(side*2.25,2.5,0);
+  xfmrGrp.add(pipe);
+});
+
+// Top cover
+const txTop=new THREE.Mesh(new THREE.BoxGeometry(4.3,0.15,2.7), M(0x2a4a2a,0.8,0.4));
+txTop.position.set(0,5.1,0);
+xfmrGrp.add(txTop);
+
+// Oil conservator (header tank on top)
+const conservator=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,1.8,12), matOil);
+conservator.rotation.z=Math.PI/2;
+conservator.position.set(0,6.0,0);
+xfmrGrp.add(conservator);
+// Conservator support
+const consSupport=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.8,6), matSteel);
+consSupport.position.set(0,5.5,0);
+xfmrGrp.add(consSupport);
+
+// Buchholz relay
+const buchholz=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,0.3,8), M(0x888880,0.8,0.4));
+buchholz.rotation.z=Math.PI/2;
+buchholz.position.set(-0.5,5.6,0);
+xfmrGrp.add(buchholz);
+
+// ── HV BUSHINGS (11kV side - top) ──
+const bushing_hv_colors = [matRed, matYellow, matBlue];
+const hvPos = [[-0.8,6.0,0.5],[0,6.0,0.5],[0.8,6.0,0.5]];
+hvPos.forEach((pos,i)=>{
+  // Bushing stack
+  for(let s=0;s<5;s++){
+    const disk=new THREE.Mesh(new THREE.CylinderGeometry(0.14-s*0.01,0.14-s*0.01,0.12,12), matInsul);
+    disk.position.set(pos[0],pos[1]+s*0.16,pos[2]);
+    xfmrGrp.add(disk);
+  }
+  // Terminal cap
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,8), M(0xccaa00,0.95,0.1));
+  cap.position.set(pos[0],pos[1]+0.9,pos[2]);
+  xfmrGrp.add(cap);
+  // HV conductor up
+  const cond=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,2.5,6), matCopper);
+  cond.position.set(pos[0],pos[1]+2.0,pos[2]);
+  xfmrGrp.add(cond);
+});
+
+// ── LV BUSHINGS (415V side) ──
+const lvPos = [[-0.8,3.5,-1.4],[0,3.5,-1.4],[0.8,3.5,-1.4]];
+lvPos.forEach((pos,i)=>{
+  for(let s=0;s<3;s++){
+    const disk=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.1,12), matInsul);
+    disk.position.set(pos[0],pos[1]+s*0.12,pos[2]);
+    xfmrGrp.add(disk);
+  }
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,8), M(0xccaa00,0.95,0.1));
+  cap.position.set(pos[0],pos[1]+0.4,pos[2]);
+  xfmrGrp.add(cap);
+});
+
+// Transformer base/plinth
+const plinth=new THREE.Mesh(new THREE.BoxGeometry(4.6,0.4,3.0), matConcrete);
+plinth.position.set(0,0.2,0);
+xfmrGrp.add(plinth);
+// Oil sump/bund wall
+const sump=new THREE.Mesh(new THREE.BoxGeometry(6,0.15,4.5), Mc(0x777770,0.9));
+sump.position.set(0,0.05,0);
+xfmrGrp.add(sump);
+
+// ── CIRCUIT BREAKER (SF6) ──
+const cbGrp = new THREE.Group();
+cbGrp.position.set(-7,0,0);
+root.add(cbGrp);
+
+// CB base
+const cbBase=new THREE.Mesh(new THREE.BoxGeometry(2,0.3,1), matConcrete);
+cbBase.position.y=0.15;
+cbGrp.add(cbBase);
+
+// CB poles (3-phase)
+[-0.6,0,0.6].forEach((z,i)=>{
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.14,2.5,12), M(0x334455,0.85,0.35));
+  pole.position.set(0,1.4,z);
+  cbGrp.add(pole);
+  // Insulator
+  for(let s=0;s<4;s++){
+    const ins=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.1,10), matInsul);
+    ins.position.set(0,2.6+s*0.15,z);
+    cbGrp.add(ins);
+  }
+  // Top terminal
+  const term=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5,8), matCopper);
+  term.position.set(0,3.4,z);
+  cbGrp.add(term);
+});
+
+// CB operating mechanism box
+const mechBox=new THREE.Mesh(new THREE.BoxGeometry(0.8,1.0,0.6), M(0x223344,0.85,0.4));
+mechBox.position.set(0.7,0.8,0);
+cbGrp.add(mechBox);
+
+// ── ISOLATOR / DISCONNECT SWITCH ──
+[-9, 7].forEach((x,si)=>{
+  const isoGrp=new THREE.Group();
+  isoGrp.position.set(x,0,0);
+  root.add(isoGrp);
+
+  const isoBase=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.25,0.8), matConcrete);
+  isoBase.position.y=0.12;
+  isoGrp.add(isoBase);
+
+  [-0.4,0,0.4].forEach(z=>{
+    // Post insulator
+    for(let s=0;s<5;s++){
+      const d=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.1,10), matInsul);
+      d.position.set(0,0.3+s*0.15,z);
+      isoGrp.add(d);
+    }
+    // Blade
+    const blade=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.04,0.04), matCopper);
+    blade.position.set(0,1.1,z);
+    blade.rotation.z=si===0?0.3:-0.3;
+    isoGrp.add(blade);
+  });
+});
+
+// ── CURRENT TRANSFORMERS (CT) ──
+[-5,5].forEach(x=>{
+  const ctGrp=new THREE.Group();
+  ctGrp.position.set(x,0,0);
+  root.add(ctGrp);
+  [-0.4,0,0.4].forEach(z=>{
+    const ct=new THREE.Mesh(new THREE.TorusGeometry(0.2,0.08,8,16), M(0x334455,0.85,0.3));
+    ct.position.set(0,3.5,z);
+    ctGrp.add(ct);
+    const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,3.3,8), M(0x223344,0.85,0.4));
+    stem.position.set(0,1.8,z);
+    ctGrp.add(stem);
+  });
+});
+
+// ── BUS BARS (3-phase overhead) ──
+const busY = 8.5;
+// Bus support structures
+[-10,-3,3,10].forEach(x=>{
+  const col=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,busY,8), matSteel);
+  col.position.set(x,busY/2,-3);
+  root.add(col);
+  const crossarm=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,2.0), matSteel);
+  crossarm.position.set(x,busY,-2);
+  root.add(crossarm);
+});
+
+// Bus bars R Y B
+const busMats=[matRed,matYellow,matBlue];
+const busZPos=[-3.2,-3.0,-2.8];
+busMats.forEach((mat,i)=>{
+  const bus=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,22,6), mat);
+  bus.rotation.z=Math.PI/2;
+  bus.position.set(0,busY+i*0.15,busZPos[i]);
+  root.add(bus);
+});
+
+// ── LIGHTNING ARRESTORS ──
+[-11,11].forEach(x=>{
+  const laGrp=new THREE.Group();
+  laGrp.position.set(x,0,-1);
+  root.add(laGrp);
+  for(let s=0;s<6;s++){
+    const seg=new THREE.Mesh(new THREE.CylinderGeometry(0.06-s*0.003,0.06-s*0.003,0.3,8), M(0x556677,0.8,0.4));
+    seg.position.y=0.3+s*0.32;
+    laGrp.add(seg);
+  }
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(0.04,0.25,8), M(0xccaa00,0.95,0.1));
+  tip.position.y=2.4;
+  laGrp.add(tip);
+});
+
+// ── CONTROL ROOM ──
+const ctrlRoom=new THREE.Group();
+ctrlRoom.position.set(0,0,-9);
+root.add(ctrlRoom);
+
+const building=new THREE.Mesh(new THREE.BoxGeometry(6,3,4), Mc(0x888880,0.8));
+building.position.y=1.5;
+building.castShadow=true;
+ctrlRoom.add(building);
+
+// Door
+const door=new THREE.Mesh(new THREE.BoxGeometry(0.8,1.8,0.05), M(0x334455,0.8,0.5));
+door.position.set(0,0.9,2.03);
+ctrlRoom.add(door);
+
+// Windows
+[-1.5,1.5].forEach(x=>{
+  const win=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.6,0.05), M(0x334466,0.3,0.1));
+  win.position.set(x,1.8,2.03);
+  ctrlRoom.add(win);
+});
+
+// Roof
+const roof=new THREE.Mesh(new THREE.BoxGeometry(6.3,0.2,4.3), M(0x556677,0.85,0.4));
+roof.position.y=3.1;
+ctrlRoom.add(roof);
+
+// AC unit on roof
+const acUnit=new THREE.Mesh(new THREE.BoxGeometry(1,0.4,0.6), M(0x888890,0.8,0.4));
+acUnit.position.set(-1.5,3.35,0);
+ctrlRoom.add(acUnit);
+
+// Control room light
+const ctrlLight=new THREE.PointLight(0xffcc88,0.8,8);
+ctrlLight.position.set(0,3,-9);
+scene.add(ctrlLight);
+
+// ── CABLE TRENCH ──
+[-3,3].forEach(z=>{
+  const trench=new THREE.Mesh(new THREE.BoxGeometry(20,0.15,0.4), Mc(0x333330,0.95));
+  trench.position.set(0,0.01,z);
+  root.add(trench);
+});
+
+// ── EARTHING GRID ──
+for(let i=-8;i<=8;i+=4){
+  const e=new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.015,0.5,4), M(0x228822,0.7,0.5));
+  e.position.set(i,0.01,0);
+  root.add(e);
+}
+
+// ── PARTICLES ──
+const pGeo=new THREE.BufferGeometry();
+const pArr=new Float32Array(200*3);
+for(let i=0;i<200*3;i++) pArr[i]=(Math.random()-0.5)*60;
+pGeo.setAttribute('position',new THREE.BufferAttribute(pArr,3));
+scene.add(new THREE.Points(pGeo, new THREE.PointsMaterial({color:0x00cfff,size:0.06,transparent:true,opacity:0.2})));
+
+// ── STATE ──
+let mode='normal';
+let loadMW=0, targetLoad=8.5, t=0;
+let breakerClosed=false;
+
+function setMode(m) {
+  mode=m;
+  ['norm','ovld','trip'].forEach(id=>{
+    const btn=document.getElementById(id+'-btn');
+    if(btn) btn.classList.remove('active');
+  });
+  if(m==='normal'){
+    document.getElementById('norm-btn').classList.add('active');
+    targetLoad=8.5; breakerClosed=true;
+    document.getElementById('brkr').textContent='CLOSED';
+    document.getElementById('brkr').style.color='#00ff88';
+    tripLight.intensity=0;
+  } else if(m==='overload'){
+    document.getElementById('ovld-btn').classList.add('active');
+    targetLoad=18.5; breakerClosed=true;
+    document.getElementById('brkr').textContent='OVERLOAD';
+    document.getElementById('brkr').style.color='#ffcc00';
+    tripLight.intensity=0;
+  } else if(m==='trip'){
+    document.getElementById('trip-btn').classList.add('active');
+    targetLoad=0; breakerClosed=false;
+    document.getElementById('brkr').textContent='TRIPPED';
+    document.getElementById('brkr').style.color='#ff4400';
+  }
+}
+
+function resetBreaker() {
+  if(mode==='trip') { setMode('normal'); }
+}
+
+// ── ORBIT ──
+let drag=false,px=0,py=0,tRX=0.45,tRY=0.4,rX=0.45,rY=0.4,zoom=28;
+const el=renderer.domElement;
+el.addEventListener('mousedown',e=>{drag=true;px=e.clientX;py=e.clientY;});
+el.addEventListener('mouseup',()=>drag=false);
+el.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  tRY+=(e.clientX-px)*0.007;tRX+=(e.clientY-py)*0.007;
+  tRX=Math.max(-0.6,Math.min(0.8,tRX));px=e.clientX;py=e.clientY;
+});
+el.addEventListener('wheel',e=>{zoom+=e.deltaY*0.01;zoom=Math.max(8,Math.min(50,zoom));});
+el.addEventListener('touchstart',e=>{drag=true;px=e.touches[0].clientX;py=e.touches[0].clientY;});
+el.addEventListener('touchend',()=>drag=false);
+el.addEventListener('touchmove',e=>{
+  if(!drag)return;
+  tRY+=(e.touches[0].clientX-px)*0.007;tRX+=(e.touches[0].clientY-py)*0.007;
+  tRX=Math.max(-0.6,Math.min(0.8,tRX));px=e.touches[0].clientX;py=e.touches[0].clientY;
+});
+
+// ── ANIMATE ──
+function animate(){
+  requestAnimationFrame(animate);
+  t+=0.016;
+
+  loadMW+=(targetLoad-loadMW)*0.02;
+
+  // Update UI
+  const vIn  = breakerClosed ? 11.0 : 0.0;
+  const vOut = breakerClosed ? Math.round((loadMW/20)*415) : 0;
+  document.getElementById('v-in').innerHTML  = vIn.toFixed(1)+' <small style="font-size:0.7rem">kV</small>';
+  document.getElementById('v-out').innerHTML = vOut+' <small style="font-size:0.7rem">V</small>';
+  document.getElementById('load').innerHTML  = loadMW.toFixed(1)+' <small style="font-size:0.7rem">MW</small>';
+
+  // Arc light on bus bars when energized
+  arcLight.intensity = breakerClosed ? 0.3+Math.sin(t*8)*0.1 : 0;
+  arcLight.position.y = 8.5;
+
+  // Trip flash
+  if(mode==='trip'){
+    tripLight.intensity = Math.sin(t*6)>0 ? 1.5 : 0;
+  }
+
+  // Overload flicker
+  if(mode==='overload'){
+    arcLight.intensity = 0.5+Math.sin(t*15)*0.3;
+    arcLight.color.setHex(loadMW>15?0xff6600:0x4488ff);
+  }
+
+  // Bus bar glow pulse
+  const busGlow = breakerClosed ? 0.8+Math.sin(t*2)*0.2 : 0;
+  [matRed,matYellow,matBlue].forEach(m=>m.emissiveIntensity=busGlow);
+
+  // Camera
+  rX+=(tRX-rX)*0.06;rY+=(tRY-rY)*0.06;
+  camera.position.set(
+    Math.sin(rY)*Math.cos(rX)*zoom,
+    Math.sin(rX)*zoom+2,
+    Math.cos(rY)*Math.cos(rX)*zoom
+  );
+  camera.lookAt(0,3,0);
+
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+setMode('normal');
+animate();
+
+// ── SOUND ENGINE ──────────────────────────────────────────────
+const ac = new (window.AudioContext || window.webkitAudioContext)();
+
+let humOsc=null, humGain=null;
+function startHum(){
+  if(humOsc) return;
+  humGain=ac.createGain(); humGain.gain.value=0;
+  humOsc=ac.createOscillator(); humOsc.type='sawtooth'; humOsc.frequency.value=50;
+  const h2=ac.createOscillator(); h2.type='sine'; h2.frequency.value=100;
+  const h3=ac.createOscillator(); h3.type='sine'; h3.frequency.value=150;
+  const g2=ac.createGain(); g2.gain.value=0.4;
+  const g3=ac.createGain(); g3.gain.value=0.2;
+  const flt=ac.createBiquadFilter(); flt.type='bandpass'; flt.frequency.value=80; flt.Q.value=0.8;
+  humOsc.connect(flt); h2.connect(g2); h3.connect(g3);
+  flt.connect(humGain); g2.connect(humGain); g3.connect(humGain);
+  humGain.connect(ac.destination);
+  humOsc.start(); h2.start(); h3.start();
+}
+function setHumVol(v){
+  if(!humGain)return;
+  humGain.gain.setTargetAtTime(v*0.06,ac.currentTime,0.5);
+}
+
+function playBreaker(close=true){
+  const buf=ac.createBuffer(1,ac.sampleRate*0.3,ac.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(ac.sampleRate*0.08))*(close?0.8:0.6);
+  const src=ac.createBufferSource();
+  const flt=ac.createBiquadFilter(); flt.type='lowpass'; flt.frequency.value=close?400:300;
+  src.buffer=buf; src.connect(flt); flt.connect(ac.destination); src.start();
+}
+
+let arcOsc=null, arcGain=null;
+function startArc(){
+  if(arcOsc)return;
+  arcGain=ac.createGain(); arcGain.gain.value=0.12;
+  arcOsc=ac.createOscillator(); arcOsc.type='sawtooth'; arcOsc.frequency.value=120;
+  const n2=ac.createOscillator(); n2.type='square'; n2.frequency.value=240;
+  const ng=ac.createGain(); ng.gain.value=0.3;
+  const dist=ac.createWaveShaper();
+  const cv=new Float32Array(256);
+  for(let i=0;i<256;i++){const x=i*2/256-1;cv[i]=(Math.PI+200)*x/(Math.PI+200*Math.abs(x));}
+  dist.curve=cv;
+  arcOsc.connect(dist); n2.connect(ng); ng.connect(dist);
+  dist.connect(arcGain); arcGain.connect(ac.destination);
+  arcOsc.start(); n2.start();
+}
+function stopArc(){
+  if(!arcOsc)return;
+  arcGain.gain.setTargetAtTime(0,ac.currentTime,0.2);
+  setTimeout(()=>{try{arcOsc.stop();}catch(e){}arcOsc=null;},400);
+}
+
+function playAlarm(){
+  for(let i=0;i<3;i++) setTimeout(()=>{
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type='square'; o.frequency.value=880; g.gain.value=0.15;
+    o.connect(g); g.connect(ac.destination); o.start();
+    g.gain.setTargetAtTime(0,ac.currentTime+0.15,0.05);
+    setTimeout(()=>{try{o.stop();}catch(e){}},300);
+  },i*350);
+}
+
+// Override buttons with sound
+const _setMode=setMode;
+window.setMode=function(m){
+  ac.resume();
+  const prev=breakerClosed;
+  _setMode(m);
+  if(m==='normal'){ if(!prev)playBreaker(true); stopArc(); startHum(); setHumVol(0.6); }
+  else if(m==='overload'){ startHum(); setHumVol(1.5); stopArc(); }
+  else if(m==='trip'){ playBreaker(false); playAlarm(); startArc(); setHumVol(0); }
+};
+window.resetBreaker=function(){
+  if(mode==='trip'){
+    ac.resume(); stopArc(); playBreaker(true);
+    setTimeout(()=>{startHum();setHumVol(0.6);},300);
+    _setMode('normal');
+    document.getElementById('norm-btn').classList.add('active');
+    document.getElementById('trip-btn').classList.remove('active','tripped');
+  }
+};
+document.addEventListener('click',()=>{
+  ac.resume().then(()=>{startHum();setHumVol(0.6);});
+},{once:true});
+</script>
+
+<style>
+#trf-hud{position:fixed;bottom:20px;left:14px;font-family:'Courier New',monospace;z-index:100;pointer-events:none;}
+.t-row{display:flex;gap:10px;margin-bottom:7px;}
+.t-box{background:#00000099;border:1px solid #00cfff33;padding:5px 10px;min-width:82px;}
+.t-lbl{font-size:0.46rem;letter-spacing:2px;color:#00cfff55;display:block;}
+.t-val{font-size:0.9rem;color:#00cfff;text-shadow:0 0 8px #00cfff55;}
+#t-dot{position:fixed;top:14px;right:14px;width:10px;height:10px;border-radius:50%;background:#555;z-index:100;}
+#t-banner{display:none;position:fixed;top:0;left:0;right:0;background:#ff000099;color:#fff;text-align:center;padding:7px;font-family:'Courier New',monospace;font-size:0.8rem;letter-spacing:3px;z-index:999;}
+</style>
+<div id="t-banner">❌ NO GENERATOR INPUT</div>
+<div id="t-dot"></div>
+<div id="trf-hud">
+  <div class="t-row">
+    <div class="t-box"><span class="t-lbl">STATUS</span><span class="t-val" id="t-st">--</span></div>
+    <div class="t-box"><span class="t-lbl">BREAKER</span><span class="t-val" id="t-br">--</span></div>
+  </div>
+  <div class="t-row">
+    <div class="t-box"><span class="t-lbl">INPUT</span><span class="t-val" id="t-in">--</span></div>
+    <div class="t-box"><span class="t-lbl">OUTPUT</span><span class="t-val" id="t-out">--</span></div>
+  </div>
+  <div class="t-row">
+    <div class="t-box"><span class="t-lbl">LOAD</span><span class="t-val" id="t-load">--</span></div>
+    <div class="t-box"><span class="t-lbl">LOAD %</span><span class="t-val" id="t-pct">--</span></div>
+  </div>
+  <div class="t-row">
+    <div class="t-box"><span class="t-lbl">CURRENT</span><span class="t-val" id="t-i">--</span></div>
+    <div class="t-box"><span class="t-lbl">TEMP</span><span class="t-val" id="t-tmp">--</span></div>
+  </div>
+</div>
+<script>
+const tdot=document.getElementById("t-dot");
+const tbanner=document.getElementById("t-banner");
+async function fetchTrf(){
+  try{
+    const r=await fetch("/trf_state.json?t="+Date.now());
+    const d=await r.json();
+    tdot.style.background="#00ff88";tdot.style.boxShadow="0 0 6px #00ff88";
+    document.getElementById("t-st").textContent=d.status;
+    document.getElementById("t-br").textContent=d.breaker;
+    document.getElementById("t-in").textContent=d.input_v+" V";
+    document.getElementById("t-out").textContent=d.output_v+" V";
+    document.getElementById("t-load").textContent=d.load_kw+" kW";
+    document.getElementById("t-pct").textContent=d.load_pct+"%";
+    document.getElementById("t-i").textContent=d.current_a+" A";
+    document.getElementById("t-tmp").textContent=d.temp_c+" C";
+    tbanner.style.display=d.status==="NO GENERATOR INPUT"?"block":"none";
+    const c=d.emergency?"#ff0000":d.status.includes("TRIP")?"#ff4400":d.status.includes("OVER")?"#ff8800":d.status.includes("WARN")?"#ffcc00":d.output_v>0?"#00ff88":"#555";
+    document.querySelectorAll(".t-val").forEach(el=>{el.style.color=c;el.style.textShadow="0 0 8px "+c;});
+    document.querySelectorAll(".t-box").forEach(el=>{el.style.borderColor=c+"33";});
+  }catch(e){
+    tdot.style.background="#ff4444";tdot.style.boxShadow="0 0 6px #ff4444";
+  }
+}
+fetchTrf();
+setInterval(fetchTrf,3000);
+</script>
+</body>
+</html>

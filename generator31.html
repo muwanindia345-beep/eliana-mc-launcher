@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ 3D Generator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; overflow: hidden; font-family: 'Courier New', monospace; }
+  canvas { display: block; }
+
+  #ui { position: fixed; top: 16px; left: 16px; z-index: 10; }
+  #ui h1 { font-size: 1rem; letter-spacing: 4px; color: #ffaa00; text-shadow: 0 0 10px #ffaa0077; }
+  #ui p { font-size: 0.55rem; color: #444; letter-spacing: 2px; margin-top: 3px; }
+
+  #stats { position: fixed; top: 16px; right: 16px; text-align: right; z-index: 10; }
+  .srow { margin-bottom: 10px; }
+  .slabel { font-size: 0.55rem; letter-spacing: 2px; color: #555; display: block; }
+  .sval { font-size: 1.5rem; display: block; line-height: 1.1; }
+  #volt-val { color: #ffaa00; text-shadow: 0 0 8px #ffaa0066; }
+  #rpm-val  { color: #00cfff; text-shadow: 0 0 8px #00cfff66; }
+  #freq-val { color: #00ff88; text-shadow: 0 0 8px #00ff8866; }
+  #watt-val { color: #ff6644; text-shadow: 0 0 8px #ff664466; }
+
+  #controls {
+    position: fixed; bottom: 16px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 10;
+  }
+  .row { display: flex; gap: 8px; }
+  button {
+    background: #111; border: 1px solid #333; color: #888;
+    padding: 7px 16px; font-family: 'Courier New', monospace;
+    font-size: 0.65rem; letter-spacing: 2px; cursor: pointer;
+    transition: all 0.2s; text-transform: uppercase; border-radius: 2px;
+  }
+  button:hover { border-color: #ffaa00; color: #ffaa00; }
+  button.active { background: #1a1200; border-color: #ffaa00; color: #ffaa00; box-shadow: 0 0 8px #ffaa0044; }
+  #pbtn { border-color: #aa2200; color: #aa2200; padding: 9px 30px; font-size: 0.7rem; }
+  #pbtn.on { border-color: #00cc44; color: #00cc44; background: #001a08; box-shadow: 0 0 12px #00cc4455; }
+
+  /* Voltage wave canvas */
+  #waveCanvas {
+    position: fixed; bottom: 90px; right: 16px;
+    width: 160px; height: 55px;
+    border: 1px solid #222; background: #050505;
+    z-index: 10;
+  }
+  #wave-label { position: fixed; bottom: 148px; right: 16px; font-size: 0.5rem; color: #444; letter-spacing: 2px; z-index:10; }
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <h1>⚡ GENERATOR</h1>
+  <p>DRAG TO ROTATE  •  SCROLL TO ZOOM</p>
+</div>
+
+<div id="stats">
+  <div class="srow"><span class="slabel">VOLTAGE</span><span class="sval" id="volt-val" style="display:none">0 <small style="font-size:0.8rem">V</small></span></div>
+  <div class="srow"><span class="slabel">RPM</span><span class="sval" id="rpm-val" style="display:none">0</span></div>
+  <div class="srow"><span class="slabel">FREQUENCY</span><span class="sval" id="freq-val" style="display:none">0 <small style="font-size:0.8rem">Hz</small></span></div>
+  <div class="srow"><span class="slabel">OUTPUT</span><span class="sval" id="watt-val" style="display:none">0 <small style="font-size:0.8rem">kW</small></span></div>
+</div>
+
+<span id="wave-label">OUTPUT WAVEFORM</span>
+<canvas id="waveCanvas"></canvas>
+
+<div id="controls">
+  <div class="row">
+    <button id="b1" onclick="setSpd(1)">IDLE</button>
+    <button id="b2" onclick="setSpd(2)">1500 RPM</button>
+    <button id="b3" onclick="setSpd(3)">3000 RPM</button>
+  </div>
+  <button id="pbtn" onclick="togglePwr()">⏻  START ENGINE</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── SCENE ──────────────────────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0a);
+scene.fog = new THREE.Fog(0x0a0a0a, 20, 40);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(4, 3, 10);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+document.body.appendChild(renderer.domElement);
+
+// ── LIGHTS ─────────────────────────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+
+const key = new THREE.DirectionalLight(0xfff5dd, 1.6);
+key.position.set(8, 12, 8); key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0xaaccff, 0.4);
+fill.position.set(-6, 2, -4);
+scene.add(fill);
+
+const genGlow = new THREE.PointLight(0xffaa00, 0, 10);
+genGlow.position.set(0, 0.5, 0);
+scene.add(genGlow);
+
+const sparkLight = new THREE.PointLight(0x4488ff, 0, 6);
+sparkLight.position.set(2.5, 0, 0);
+scene.add(sparkLight);
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+const M = (c, met=0.8, rou=0.3) => new THREE.MeshStandardMaterial({color:c, metalness:met, roughness:rou});
+const Mg = (c, e=0x000000, ei=0) => new THREE.MeshStandardMaterial({color:c, metalness:0.5, roughness:0.4, emissive:e, emissiveIntensity:ei});
+
+// ── ROOT GROUP ─────────────────────────────────────────────────────────────
+const root = new THREE.Group();
+scene.add(root);
+
+// ─────────────────────────────────────────────────────────────────────────
+// GENERATOR BODY
+// ─────────────────────────────────────────────────────────────────────────
+const BODY_L = 4.0, BODY_R = 1.1;
+
+// Main housing
+const housing = new THREE.Mesh(new THREE.CylinderGeometry(BODY_R, BODY_R, BODY_L, 32), M(0x3a3a3a, 0.85, 0.4));
+housing.rotation.z = Math.PI/2;
+housing.castShadow = true;
+root.add(housing);
+
+// Cooling fins
+for (let i=-1.6; i<=1.6; i+=0.32) {
+  const fin = new THREE.Mesh(new THREE.CylinderGeometry(BODY_R+0.07, BODY_R+0.07, 0.06, 32), M(0x2a2a2a, 0.9, 0.25));
+  fin.rotation.z = Math.PI/2; fin.position.x = i;
+  root.add(fin);
+}
+
+// End caps
+[-1,1].forEach(s => {
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(BODY_R+0.03,BODY_R+0.03,0.2,32), M(0x444444,0.85,0.3));
+  cap.rotation.z = Math.PI/2; cap.position.x = s*(BODY_L/2+0.09);
+  root.add(cap);
+  // bearing
+  const bear = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.16,20), M(0x666670,0.95,0.1));
+  bear.rotation.z = Math.PI/2; bear.position.x = s*(BODY_L/2+0.22);
+  root.add(bear);
+  // bolts
+  for(let b=0;b<8;b++){
+    const a=(b/8)*Math.PI*2;
+    const bolt=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.24,8),M(0x888890,1,0.1));
+    bolt.rotation.z=Math.PI/2;
+    bolt.position.set(s*(BODY_L/2+0.09), Math.sin(a)*0.85, Math.cos(a)*0.85);
+    root.add(bolt);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// ROTOR (armature) — this spins!
+// ─────────────────────────────────────────────────────────────────────────
+const rotorGroup = new THREE.Group();
+root.add(rotorGroup);
+
+// Shaft
+const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,5.5,16), M(0xb0b8c8,1,0.06));
+shaft.rotation.z = Math.PI/2;
+rotorGroup.add(shaft);
+
+// Armature core
+const armCore = new THREE.Mesh(new THREE.CylinderGeometry(0.68,0.68,BODY_L*0.7,32), M(0x2a2a40,0.9,0.3));
+armCore.rotation.z = Math.PI/2;
+rotorGroup.add(armCore);
+
+// Armature windings (copper coils)
+const coilMat = M(0xb87333, 0.85, 0.25); // copper
+for(let i=0; i<12; i++){
+  const a = (i/12)*Math.PI*2;
+  const coil = new THREE.Mesh(new THREE.BoxGeometry(BODY_L*0.65, 0.08, 0.14), coilMat);
+  coil.position.set(0, Math.cos(a)*0.62, Math.sin(a)*0.62);
+  coil.rotation.x = a;
+  rotorGroup.add(coil);
+}
+
+// Commutator rings
+[-0.6,0,0.6].forEach(x => {
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.06, 8, 24), M(0xcc9933,0.95,0.15));
+  ring.rotation.y = Math.PI/2; ring.position.x = x*1.2;
+  rotorGroup.add(ring);
+});
+
+// Slip rings (output side)
+const slipGrp = new THREE.Group();
+slipGrp.position.x = BODY_L/2 + 0.5;
+root.add(slipGrp);
+[0.18,-0.18].forEach(z => {
+  const sr = new THREE.Mesh(new THREE.TorusGeometry(0.22,0.04,8,24), M(0xcc9933,0.95,0.1));
+  sr.rotation.y = Math.PI/2; sr.position.z = z;
+  slipGrp.add(sr);
+});
+
+// Shaft extension (drive end)
+const shaftExt = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1.2,16), M(0xb0b8c8,1,0.06));
+shaftExt.rotation.z = Math.PI/2; shaftExt.position.x = -(BODY_L/2+0.8);
+root.add(shaftExt);
+
+// Coupling flange
+const flange = new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.28,0.14,8), M(0x555560,0.9,0.2));
+flange.rotation.z = Math.PI/2; flange.position.x = -(BODY_L/2+1.3);
+root.add(flange);
+
+// ─────────────────────────────────────────────────────────────────────────
+// EXCITER (small generator at back)
+// ─────────────────────────────────────────────────────────────────────────
+const exciter = new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.9,24), M(0x2d2d35,0.85,0.4));
+exciter.rotation.z = Math.PI/2; exciter.position.x = BODY_L/2+0.72;
+root.add(exciter);
+
+// ─────────────────────────────────────────────────────────────────────────
+// TERMINAL BOX
+// ─────────────────────────────────────────────────────────────────────────
+const tbox = new THREE.Mesh(new THREE.BoxGeometry(1.1,0.6,0.75), M(0x303035,0.8,0.4));
+tbox.position.set(0.3, BODY_R+0.3, 0);
+root.add(tbox);
+
+// Output terminals (3-phase R,Y,B)
+[[0x002200,0x00cc00],[0x221100,0xffaa00],[0x000022,0x4488ff]].forEach(([bg,fg],i) => {
+  const term = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.18,8), M(fg,0.9,0.15));
+  term.position.set(0.3+(i-1)*0.28, BODY_R+0.65, 0);
+  root.add(term);
+});
+
+// Output cables
+[[0x00cc00,0.3],[0xffaa00,0],[0x4488ff,-0.3]].forEach(([col,ox]) => {
+  const pts = [
+    new THREE.Vector3(ox, BODY_R+0.65, 0),
+    new THREE.Vector3(ox, BODY_R+1.1, 0.3),
+    new THREE.Vector3(ox+0.2, BODY_R+1.4, 0.8)
+  ];
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const geo = new THREE.TubeGeometry(curve, 12, 0.035, 6, false);
+  root.add(new THREE.Mesh(geo, M(col,0.3,0.9)));
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// MOUNTING BASE
+// ─────────────────────────────────────────────────────────────────────────
+const baseMat = M(0x1a1a1a, 0.7, 0.6);
+[-0.75, 0.75].forEach(z => {
+  const base = new THREE.Mesh(new THREE.BoxGeometry(BODY_L+0.4,0.2,0.5), baseMat);
+  base.position.set(0, -BODY_R-0.1, z);
+  root.add(base);
+});
+// Anti-vibration mounts
+[[-1.7,-0.75],[1.7,-0.75],[-1.7,0.75],[1.7,0.75]].forEach(([x,z]) => {
+  const mount = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.12,0.25,8), M(0x222222,0.5,0.9));
+  mount.position.set(x,-BODY_R-0.12,z);
+  root.add(mount);
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// SPARK PARTICLES (brush sparks)
+// ─────────────────────────────────────────────────────────────────────────
+const sparkGeo = new THREE.BufferGeometry();
+const SPARKS = 60;
+const sPos = new Float32Array(SPARKS*3);
+const sparkMat = new THREE.PointsMaterial({color:0xffcc44, size:0.06, transparent:true, opacity:0});
+sparkGeo.setAttribute('position', new THREE.BufferAttribute(sPos,3));
+const sparks = new THREE.Points(sparkGeo, sparkMat);
+sparks.position.x = BODY_L/2+0.5;
+root.add(sparks);
+
+// ─────────────────────────────────────────────────────────────────────────
+// FLOOR & GRID
+// ─────────────────────────────────────────────────────────────────────────
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(40,40), M(0x111111,0.3,0.95));
+floor.rotation.x = -Math.PI/2; floor.position.y = -BODY_R-0.2; floor.receiveShadow=true;
+scene.add(floor);
+const grid = new THREE.GridHelper(40,50,0xffffff08,0xffffff05);
+grid.position.y = -BODY_R-0.19;
+scene.add(grid);
+
+// ─────────────────────────────────────────────────────────────────────────
+// WAVEFORM CANVAS
+// ─────────────────────────────────────────────────────────────────────────
+const wc = document.getElementById('waveCanvas');
+const wx = wc.getContext('2d');
+wc.width=160; wc.height=55;
+let waveHistory = new Array(160).fill(0);
+
+function drawWave(volt, freq, t) {
+  wx.clearRect(0,0,160,55);
+  wx.fillStyle='#050505'; wx.fillRect(0,0,160,55);
+  wx.strokeStyle='#ffaa0033'; wx.lineWidth=0.5;
+  wx.beginPath(); wx.moveTo(0,27); wx.lineTo(160,27); wx.stroke();
+
+  const amp = Math.min((volt/415)*22, 22);
+  const sample = amp * Math.sin(t * freq * 0.4);
+  waveHistory.shift(); waveHistory.push(sample);
+
+  wx.strokeStyle='#ffaa00'; wx.lineWidth=1.5;
+  wx.shadowBlur=4; wx.shadowColor='#ffaa00';
+  wx.beginPath();
+  waveHistory.forEach((v,i)=>{ i===0 ? wx.moveTo(i,27-v) : wx.lineTo(i,27-v); });
+  wx.stroke();
+  wx.shadowBlur=0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────
+let powered=false, speedLevel=2;
+let targetRPM=0, currentRPM=0, angle=0;
+const rpmMap={1:500, 2:1500, 3:3000};
+
+// Real generator math:
+// V = k × RPM (proportional)
+// f = RPM / 120 × poles (4-pole: f = RPM/30)
+// P = V × I × pf (assume pf=0.85, I scales with RPM)
+function calcElec(rpm) {
+  const V = Math.min((rpm/3000)*415, 415);
+  const f = (rpm/3000)*50;
+  const I = (rpm/3000)*80;
+  const kW = (V * I * 0.85) / 1000;
+  return { V: Math.round(V), f: f.toFixed(1), kW: kW.toFixed(1) };
+}
+
+function togglePwr() {
+  powered=!powered;
+  const btn=document.getElementById('pbtn');
+  if(powered){
+    btn.textContent='⏻  STOP ENGINE'; btn.classList.add('on');
+    targetRPM=rpmMap[speedLevel];
+  } else {
+    btn.textContent='⏻  START ENGINE'; btn.classList.remove('on');
+    targetRPM=0;
+  }
+}
+
+function setSpd(n) {
+  speedLevel=n;
+  [1,2,3].forEach(i=>document.getElementById('b'+i).classList.remove('active'));
+  document.getElementById('b'+n).classList.add('active');
+  if(powered) targetRPM=rpmMap[n];
+}
+document.getElementById('b2').classList.add('active');
+
+// ─────────────────────────────────────────────────────────────────────────
+// ORBIT
+// ─────────────────────────────────────────────────────────────────────────
+let drag=false,px=0,py=0,tRX=0.28,tRY=0.4,rX=0.28,rY=0.4,zoom=10;
+const el=renderer.domElement;
+el.addEventListener('mousedown',e=>{drag=true;px=e.clientX;py=e.clientY;});
+el.addEventListener('mouseup',()=>drag=false);
+el.addEventListener('mousemove',e=>{
+  if(!drag)return;
+  tRY+=(e.clientX-px)*0.008; tRX+=(e.clientY-py)*0.008;
+  tRX=Math.max(-0.7,Math.min(0.7,tRX)); px=e.clientX;py=e.clientY;
+});
+el.addEventListener('wheel',e=>{zoom+=e.deltaY*0.008;zoom=Math.max(4,Math.min(20,zoom));});
+el.addEventListener('touchstart',e=>{drag=true;px=e.touches[0].clientX;py=e.touches[0].clientY;});
+el.addEventListener('touchend',()=>drag=false);
+el.addEventListener('touchmove',e=>{
+  if(!drag)return;
+  tRY+=(e.touches[0].clientX-px)*0.008; tRX+=(e.touches[0].clientY-py)*0.008;
+  tRX=Math.max(-0.7,Math.min(0.7,tRX)); px=e.touches[0].clientX;py=e.touches[0].clientY;
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// ANIMATE
+// ─────────────────────────────────────────────────────────────────────────
+let t=0;
+function animate() {
+  requestAnimationFrame(animate);
+
+  currentRPM += (targetRPM-currentRPM)*0.022;
+  const rad = (currentRPM/60)*(Math.PI*2)/60;
+  t += rad;
+  angle += rad;
+
+  rotorGroup.rotation.x = angle;
+
+  const {V,f,kW} = calcElec(currentRPM);
+  document.getElementById('volt-val').innerHTML = V+' <small style="font-size:0.8rem">V</small>';
+  document.getElementById('rpm-val').textContent  = Math.round(currentRPM);
+  document.getElementById('freq-val').innerHTML  = f+' <small style="font-size:0.8rem">Hz</small>';
+  document.getElementById('watt-val').innerHTML  = kW+' <small style="font-size:0.8rem">kW</small>';
+
+  // Glow
+  genGlow.intensity = powered ? (currentRPM/3000)*1.2 : 0;
+  sparkLight.intensity = powered && currentRPM>500 ? 0.3+Math.random()*0.4 : 0;
+
+  // Spark particles
+  const sparkAmt = powered ? currentRPM/3000 : 0;
+  sparkMat.opacity = sparkAmt*0.8;
+  const sp = sparkGeo.attributes.position.array;
+  for(let i=0;i<SPARKS*3;i+=3){
+    sp[i]   += (Math.random()-0.5)*0.12*sparkAmt;
+    sp[i+1] += (Math.random()-0.3)*0.1*sparkAmt;
+    sp[i+2] += (Math.random()-0.5)*0.12*sparkAmt;
+    const d = Math.sqrt(sp[i]*sp[i]+sp[i+1]*sp[i+1]+sp[i+2]*sp[i+2]);
+    if(d>0.5||!powered){ sp[i]=(Math.random()-0.5)*0.2; sp[i+1]=(Math.random()-0.5)*0.2; sp[i+2]=(Math.random()-0.5)*0.2; }
+  }
+  sparkGeo.attributes.position.needsUpdate=true;
+
+  // Vibration at high speed
+  const vib=(currentRPM/3000)*0.004;
+  root.position.y = vib>0.001 ? Math.sin(t*15)*vib : 0;
+
+  // Waveform
+  drawWave(V, parseFloat(f), t);
+
+  // Camera
+  rX+=(tRX-rX)*0.07; rY+=(tRY-rY)*0.07;
+  camera.position.set(
+    Math.sin(rY)*Math.cos(rX)*zoom,
+    Math.sin(rX)*zoom+1,
+    Math.cos(rY)*Math.cos(rX)*zoom
+  );
+  camera.lookAt(0.3,0,0);
+
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+animate();
+</script>
+
+<style>
+#gen-hud{position:fixed;bottom:20px;left:14px;font-family:'Courier New',monospace;z-index:100;pointer-events:none;}
+.g-row{display:flex;gap:10px;margin-bottom:7px;}
+.g-box{background:#00000099;border:1px solid #ffaa0033;padding:5px 10px;min-width:82px;}
+.g-lbl{font-size:0.46rem;letter-spacing:2px;color:#ffaa0055;display:block;}
+.g-val{font-size:0.9rem;color:#ffaa00;text-shadow:0 0 8px #ffaa0055;}
+#g-dot{position:fixed;top:14px;right:14px;width:10px;height:10px;border-radius:50%;background:#555;z-index:100;}
+#g-offline{display:none;position:fixed;top:0;left:0;right:0;background:#ff000099;color:#fff;text-align:center;padding:7px;font-family:'Courier New',monospace;font-size:0.8rem;letter-spacing:3px;z-index:999;}
+</style>
+<div id="g-offline">⚡ GENERATOR OFFLINE</div>
+<div id="g-dot"></div>
+<div id="gen-hud">
+  <div class="g-row">
+    <div class="g-box"><span class="g-lbl">STATUS</span><span class="g-val" id="g-st">--</span></div>
+    <div class="g-box"><span class="g-lbl">RPM</span><span class="g-val" id="g-rpm">--</span></div>
+  </div>
+  <div class="g-row">
+    <div class="g-box"><span class="g-lbl">VOLTAGE</span><span class="g-val" id="g-v">--</span></div>
+    <div class="g-box"><span class="g-lbl">FREQ</span><span class="g-val" id="g-f">--</span></div>
+  </div>
+  <div class="g-row">
+    <div class="g-box"><span class="g-lbl">POWER</span><span class="g-val" id="g-p">--</span></div>
+    <div class="g-box"><span class="g-lbl">CURRENT</span><span class="g-val" id="g-i">--</span></div>
+  </div>
+  <div class="g-row">
+    <div class="g-box"><span class="g-lbl">TEMP</span><span class="g-val" id="g-t">--</span></div>
+    <div class="g-box"><span class="g-lbl">kVA</span><span class="g-val" id="g-kva">--</span></div>
+  </div>
+</div>
+<script>
+const dot=document.getElementById("g-dot");
+const offBanner=document.getElementById("g-offline");
+async function fetchGen(){
+  try{
+    const r=await fetch("/gen_state.json?t="+Date.now());
+    const d=await r.json();
+    dot.style.background="#00ff88";dot.style.boxShadow="0 0 6px #00ff88";
+    document.getElementById("g-st").textContent=d.status;
+    document.getElementById("g-rpm").textContent=Math.round(d.rpm);
+    document.getElementById("g-v").textContent=d.voltage_v+" V";
+    document.getElementById("g-f").textContent=d.freq_hz+" Hz";
+    document.getElementById("g-p").textContent=d.power_kw+" kW";
+    document.getElementById("g-i").textContent=d.current_a+" A";
+    document.getElementById("g-t").textContent=d.temp_c+" C";
+    document.getElementById("g-kva").textContent=d.power_kva+" kVA";
+    offBanner.style.display=(!d.on&&d.rpm<10)?"block":"none";
+    const c=d.emergency?"#ff0000":d.status==="RUNNING FULL"?"#00ff88":d.status.includes("RUNNING")?"#00cc44":d.status.includes("START")?"#ffcc00":d.on?"#ffaa00":"#555";
+    document.querySelectorAll(".g-val").forEach(el=>{el.style.color=c;el.style.textShadow="0 0 8px "+c;});
+    document.querySelectorAll(".g-box").forEach(el=>{el.style.borderColor=c+"33";});
+  }catch(e){
+    dot.style.background="#ff4444";dot.style.boxShadow="0 0 6px #ff4444";
+  }
+}
+fetchGen();
+setInterval(fetchGen,3000);
+</script>
+</body>
+</html>
