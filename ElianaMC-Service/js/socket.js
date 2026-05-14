@@ -1,6 +1,6 @@
 // ===== js/socket.js =====
 
-const WS_URL = 'ws://localhost:8007/ws/console';
+const WS_URL = 'wss://costumes-freeware-isaac-reproduced.trycloudflare.com/ws/console';
 
 const socket = {
   ws: null,

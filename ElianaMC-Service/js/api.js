@@ -1,6 +1,6 @@
 // ===== js/api.js =====
 
-const API_BASE = 'http://localhost:8007';
+const API_BASE = 'https://costumes-freeware-isaac-reproduced.trycloudflare.com';
 
 const api = {
 
