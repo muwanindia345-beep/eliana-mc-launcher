@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: satellite-mission-control
+    runtime: python3
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    plan: free
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: NASA_API_KEY
+        sync: false
+      - key: APOD_CHANNEL_ID
+        sync: false
+      - key: DATA_CHANNEL_ID
+        sync: false
+      - key: ALERT_CHANNEL_ID
+        sync: false
+      - key: SAT_PREFIX
+        value: "!sat "
