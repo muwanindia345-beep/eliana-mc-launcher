@@ -65,6 +65,10 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     return user
 
 # ── Routes ────────────────────────────────────────
+@app.get("/")
+async def root():
+    return {"service": "ElianaMC Auth", "status": "online"}
+
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
