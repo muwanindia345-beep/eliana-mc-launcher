@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0a0a0f"/>
+  <title>ElianaMC — Login</title>
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/auth.css"/>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="auth-page">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">ELIANA<span>MC</span></span>
+    </div>
+
+    <!-- Card -->
+    <div class="auth-card">
+
+      <div class="auth-title">WELCOME BACK</div>
+      <div class="auth-sub">Sign in to your account</div>
+
+      <!-- Error/Success banner -->
+      <div class="auth-banner error" id="error-banner"></div>
+      <div class="auth-banner success" id="success-banner"></div>
+
+      <!-- Email -->
+      <div class="field-group">
+        <label class="field-label">EMAIL</label>
+        <div class="field-wrap">
+          <span class="field-icon">📧</span>
+          <input
+            type="email"
+            class="field-input"
+            id="email"
+            placeholder="you@example.com"
+            oninput="clearErrors()"
+          />
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="field-group">
+        <label class="field-label">PASSWORD</label>
+        <div class="field-wrap">
+          <span class="field-icon">🔑</span>
+          <input
+            type="password"
+            class="field-input"
+            id="password"
+            placeholder="Enter password"
+            oninput="clearErrors()"
+            onkeydown="if(event.key==='Enter') login()"
+          />
+          <span class="field-eye" onclick="togglePass('password', this)">👁️</span>
+        </div>
+        <div class="field-hint" id="pass-hint"></div>
+      </div>
+
+      <!-- Submit -->
+      <button class="auth-btn" id="login-btn" onclick="login()">
+        <span id="btn-text">SIGN IN</span>
+        <span id="btn-loader" class="btn-loader" style="display:none">⏳</span>
+      </button>
+
+      <!-- Register link -->
+      <div class="auth-footer">
+        Don't have an account?
+        <a href="register.html" class="auth-link">Create one</a>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>

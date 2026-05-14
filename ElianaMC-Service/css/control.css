@@ -1,0 +1,293 @@
+/* ===== css/control.css ===== */
+
+.control-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(16px, 3vw, 32px) clamp(12px, 3vw, 24px);
+  min-height: calc(100vh - var(--nav-h));
+  min-height: calc(100dvh - var(--nav-h));
+  gap: clamp(16px, 3vw, 28px);
+}
+
+/* Status Bar */
+.status-bar {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: clamp(10px, 2vw, 14px) clamp(14px, 3vw, 22px);
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-text {
+  font-size: var(--fs-sm);
+  letter-spacing: clamp(1px, 0.5vw, 3px);
+  color: #fff;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 2vw, 16px);
+  flex-wrap: wrap;
+}
+
+.server-type-badge {
+  font-size: var(--fs-xs);
+  letter-spacing: 2px;
+  padding: 4px clamp(8px, 1.5vw, 14px);
+  border-radius: 20px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--mid);
+  white-space: nowrap;
+}
+
+.update-timer {
+  font-size: var(--fs-xs);
+  letter-spacing: 1px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+/* Fan Section */
+.fan-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 2vw, 18px);
+  width: 100%;
+}
+
+.fan-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 2vw, 16px);
+}
+
+/* Outer Ring */
+.fan-outer-ring {
+  --fan-size: min(260px, 68vw, 50vh);
+  width: var(--fan-size);
+  height: var(--fan-size);
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.fan-outer-ring::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  border: 1px dashed rgba(0,255,128,0.07);
+}
+
+.fan-outer-ring::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,255,128,0.04);
+}
+
+.fan-container {
+  width: 87%;
+  height: 87%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fan {
+  width: 92%;
+  height: 92%;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fan states */
+.fan.stopped    { animation: none; }
+.fan.slow       { animation: spin 2.2s linear infinite; }
+.fan.fast       { animation: spin 0.28s linear infinite; }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Blades */
+.blade {
+  position: absolute;
+  width: 36%;
+  height: 13%;
+  border-radius: 50% 50% 50% 0;
+  top: 50%;
+  left: 50%;
+  transform-origin: 0 0;
+  background: linear-gradient(135deg, #1a1a2e, #0d0d1a);
+  border: 1px solid rgba(0,255,128,0.12);
+  transition: border-color 0.5s, background 0.5s;
+}
+
+.blade-1 { transform: rotate(0deg)   translate(-50%,-50%) skewX(-10deg); }
+.blade-2 { transform: rotate(60deg)  translate(-50%,-50%) skewX(-10deg); }
+.blade-3 { transform: rotate(120deg) translate(-50%,-50%) skewX(-10deg); }
+.blade-4 { transform: rotate(180deg) translate(-50%,-50%) skewX(-10deg); }
+.blade-5 { transform: rotate(240deg) translate(-50%,-50%) skewX(-10deg); }
+.blade-6 { transform: rotate(300deg) translate(-50%,-50%) skewX(-10deg); }
+
+.fan.slow .blade {
+  border-color: rgba(255,170,0,0.25);
+  background: linear-gradient(135deg, #1a1200, #0d0d1a);
+}
+
+.fan.fast .blade {
+  border-color: rgba(0,255,128,0.35);
+  background: linear-gradient(135deg, #001a0a, #0d0d1a);
+  box-shadow: 0 0 6px rgba(0,255,128,0.08);
+}
+
+/* Hub */
+.fan-hub {
+  position: absolute;
+  width: 32%;
+  height: 32%;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.hub-inner { text-align: center; }
+
+.hub-text {
+  font-size: clamp(0.38rem, 1.2vw, 0.58rem);
+  letter-spacing: 2px;
+  color: var(--green);
+  font-weight: bold;
+}
+
+.hub-sub {
+  font-size: clamp(0.3rem, 0.9vw, 0.44rem);
+  letter-spacing: 1px;
+  color: var(--dim);
+  margin-top: 2px;
+}
+
+/* RPM */
+.rpm-display {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.rpm-value {
+  font-size: clamp(1.4rem, 5vw, 2.2rem);
+  font-weight: bold;
+  color: var(--green);
+  text-shadow: 0 0 14px rgba(0,255,128,0.35);
+  transition: color 0.5s;
+  min-width: clamp(60px, 12vw, 90px);
+  text-align: right;
+}
+
+.rpm-unit {
+  font-size: var(--fs-xs);
+  letter-spacing: 3px;
+  color: var(--mid);
+}
+
+/* Fan status label */
+.fan-status-label {
+  font-size: var(--fs-xs);
+  letter-spacing: clamp(3px, 1vw, 7px);
+  color: var(--dim);
+  transition: all 0.5s;
+  text-transform: uppercase;
+}
+
+.fan-status-label.starting   { color: var(--orange); text-shadow: 0 0 10px rgba(255,170,0,0.4); }
+.fan-status-label.started    { color: var(--green);  text-shadow: 0 0 10px rgba(0,255,128,0.4); }
+.fan-status-label.stopping   { color: var(--red);    text-shadow: 0 0 10px rgba(255,68,68,0.4); }
+.fan-status-label.restarting { color: var(--orange); text-shadow: 0 0 10px rgba(255,170,0,0.4); }
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: clamp(8px, 2vw, 16px);
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  max-width: 500px;
+}
+
+.ctrl-btn {
+  flex: 1;
+  min-width: clamp(80px, 22vw, 130px);
+  max-width: 180px;
+  padding: clamp(12px, 2vw, 16px) clamp(10px, 2vw, 20px);
+  font-size: var(--fs-sm);
+  letter-spacing: clamp(1px, 0.5vw, 3px);
+  border-radius: 10px;
+}
+
+.btn-icon { font-size: clamp(0.8rem, 2vw, 1rem); }
+
+/* Info Row */
+.info-row {
+  display: flex;
+  gap: clamp(8px, 2vw, 14px);
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  max-width: 720px;
+}
+
+.info-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: clamp(12px, 2vw, 18px) clamp(14px, 2.5vw, 24px);
+  flex: 1;
+  min-width: clamp(90px, 24vw, 160px);
+  text-align: center;
+}
+
+.info-label {
+  font-size: var(--fs-xs);
+  letter-spacing: 3px;
+  color: var(--dim);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.info-value {
+  font-size: var(--fs-sm);
+  letter-spacing: 2px;
+  color: var(--green);
+}
+

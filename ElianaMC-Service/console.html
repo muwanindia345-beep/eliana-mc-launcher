@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#080810"/>
+  <title>ElianaMC — Console</title>
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/console.css"/>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+
+  <nav class="navbar">
+    <span class="logo">⚡ ELIANA<span>MC</span></span>
+    <div class="nav-links">
+      <a href="index.html"   class="nav-link">SELECT</a>
+      <a href="control.html" class="nav-link">CONTROL</a>
+      <a href="console.html" class="nav-link active">CONSOLE</a>
+      <a href="properties.html" class="nav-link">PROPS</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="console-page">
+
+      <!-- Top Row -->
+      <div class="top-row">
+
+        <!-- Mini Fan -->
+        <div class="mini-fan-box">
+          <div class="mini-fan-wrap">
+            <div class="mini-fan" id="mini-fan">
+              <div class="mini-blade mb-1"></div>
+              <div class="mini-blade mb-2"></div>
+              <div class="mini-blade mb-3"></div>
+              <div class="mini-blade mb-4"></div>
+              <div class="mini-hub"></div>
+            </div>
+          </div>
+          <div class="mini-rpm">
+            <span id="mini-rpm-value">0</span>
+            <span class="mini-rpm-unit">RPM</span>
+          </div>
+          <div class="mini-label" id="mini-status-label">OFFLINE</div>
+        </div>
+
+        <!-- Data Centre -->
+        <div class="datacenter-box">
+          <div class="dc-screen">
+            <div class="dc-screen-inner">
+              <div class="dc-line" id="dc-line-1">SYS READY</div>
+              <div class="dc-line" id="dc-line-2">WS: CONNECTING</div>
+              <div class="dc-line" id="dc-line-3">MC: UNKNOWN</div>
+            </div>
+            <div class="dc-scanline"></div>
+          </div>
+          <div class="dc-body">
+            <div class="dc-led" id="dc-led"></div>
+            <div class="dc-label">ELIANA-DC-01</div>
+            <div class="dc-slots">
+              <div class="dc-slot"></div>
+              <div class="dc-slot"></div>
+              <div class="dc-slot"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connection -->
+        <div class="conn-box">
+          <div class="conn-title">CONNECTION</div>
+          <div class="conn-row">
+            <span class="conn-label">WEBSOCKET</span>
+            <span class="dot" id="ws-dot"></span>
+            <span class="conn-val" id="ws-status">CONNECTING</span>
+          </div>
+          <div class="conn-row">
+            <span class="conn-label">SERVER</span>
+            <span class="dot" id="srv-dot"></span>
+            <span class="conn-val" id="srv-status">UNKNOWN</span>
+          </div>
+          <div class="conn-row">
+            <span class="conn-label">LOGS</span>
+            <span class="conn-val glow-green" id="log-count">0</span>
+          </div>
+          <button class="btn btn-green clear-btn" onclick="clearConsole()">CLEAR</button>
+        </div>
+
+      </div>
+
+      <!-- Console -->
+      <div class="console-wrap">
+        <div class="console-header">
+          <span class="console-title">▶ MINECRAFT CONSOLE</span>
+          <span class="console-tag" id="console-server-tag">—</span>
+        </div>
+        <div class="console-body" id="console-body">
+          <div class="console-welcome">
+            <span class="glow-green">ElianaMC Service</span> — Console Ready
+          </div>
+        </div>
+        <div class="console-input-row">
+          <span class="console-prompt">MC $</span>
+          <input
+            type="text"
+            class="console-input"
+            id="console-input"
+            placeholder="Type command..."
+            onkeydown="handleInput(event)"
+          />
+          <button class="btn btn-green send-btn" onclick="sendCommand()">SEND</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/socket.js"></script>
+  <script src="js/console.js"></script>
+</body>
+</html>

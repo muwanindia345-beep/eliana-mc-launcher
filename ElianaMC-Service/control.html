@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#080810"/>
+  <title>ElianaMC — Control Panel</title>
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/control.css"/>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+
+  <nav class="navbar">
+    <span class="logo">⚡ ELIANA<span>MC</span></span>
+    <div class="nav-links">
+      <a href="index.html"   class="nav-link">SELECT</a>
+      <a href="control.html" class="nav-link active">CONTROL</a>
+      <a href="console.html" class="nav-link">CONSOLE</a>
+      <a href="properties.html" class="nav-link">PROPS</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="control-page">
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div class="status-left">
+          <span class="dot pending" id="status-dot"></span>
+          <span class="status-text" id="status-text">CHECKING...</span>
+        </div>
+        <div class="status-right">
+          <button class="btn btn-green" id="mute-btn" onclick="toggleMute()" style="padding:4px 12px;font-size:0.65rem;letter-spacing:1px">🔊</button>
+          <span class="server-type-badge" id="server-badge">—</span>
+          <span class="update-timer" id="update-timer">Next update in 10s</span>
+        </div>
+      </div>
+
+      <!-- Fan Section -->
+      <div class="fan-section">
+        <div class="fan-wrapper">
+
+          <div class="fan-outer-ring">
+            <div class="fan-container">
+              <div class="fan" id="fan">
+                <div class="blade blade-1"></div>
+                <div class="blade blade-2"></div>
+                <div class="blade blade-3"></div>
+                <div class="blade blade-4"></div>
+                <div class="blade blade-5"></div>
+                <div class="blade blade-6"></div>
+                <div class="fan-hub">
+                  <div class="hub-inner">
+                    <div class="hub-text">ELIANA</div>
+                    <div class="hub-sub">MINECRAFT</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rpm-display">
+            <span class="rpm-value" id="rpm-value">0</span>
+            <span class="rpm-unit">RPM</span>
+          </div>
+
+          <div class="fan-status-label" id="fan-status-label">OFFLINE</div>
+
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="btn btn-green ctrl-btn" id="btn-start" onclick="serverAction('start')">
+          <span class="btn-icon">▶</span> START
+        </button>
+        <button class="btn btn-orange ctrl-btn" id="btn-restart" onclick="serverAction('restart')">
+          <span class="btn-icon">↺</span> RESTART
+        </button>
+        <button class="btn btn-red ctrl-btn" id="btn-stop" onclick="serverAction('stop')">
+          <span class="btn-icon">■</span> STOP
+        </button>
+      </div>
+
+      <!-- Info Row -->
+      <div class="info-row">
+        <div class="info-card">
+          <div class="info-label">SERVER</div>
+          <div class="info-value" id="info-server">—</div>
+        </div>
+        <div class="info-card">
+          <div class="info-label">STATUS</div>
+          <div class="info-value" id="info-status">—</div>
+        </div>
+        <div class="info-card">
+          <div class="info-label">ENGINE</div>
+          <div class="info-value" id="info-engine">—</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/socket.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/control.js"></script>
+</body>
+</html>

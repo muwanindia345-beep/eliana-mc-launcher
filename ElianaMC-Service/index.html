@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#080810"/>
+  <title>ElianaMC — Select Server</title>
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/index.css"/>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+
+  <nav class="navbar">
+    <span class="logo">⚡ ELIANA<span>MC</span></span>
+    <div class="nav-links">
+      <a href="index.html"   class="nav-link active">SELECT</a>
+      <a href="control.html" class="nav-link">CONTROL</a>
+      <a href="console.html" class="nav-link">CONSOLE</a>
+      <a href="properties.html" class="nav-link">PROPS</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="index-page">
+
+      <div class="hero">
+        <p class="hero-label">ELIANA MC SERVICE</p>
+        <h1 class="hero-title">Select <span class="glow-green">Server</span></h1>
+        <p class="hero-sub">Choose which Minecraft server to manage</p>
+      </div>
+
+      <div class="cards">
+
+        <div class="server-card" id="card-java" onclick="selectServer('java')">
+          <div class="card-glow java-glow"></div>
+          <div class="card-icon">☕</div>
+          <div class="card-title glow-orange">JAVA</div>
+          <div class="card-engine">Paper 1.21</div>
+          <div class="card-desc">SeraphinaMC · paper.jar</div>
+          <div class="card-cmd">java -jar paper.jar nogui</div>
+          <div class="card-badge java-badge">JAVA EDITION</div>
+          <div class="card-check" id="check-java">✓</div>
+        </div>
+
+        <div class="server-card" id="card-bedrock" onclick="selectServer('bedrock')">
+          <div class="card-glow bedrock-glow"></div>
+          <div class="card-icon">🪨</div>
+          <div class="card-title glow-blue">BEDROCK</div>
+          <div class="card-engine">Bedrock Server</div>
+          <div class="card-desc">LuciaMC · bedrock_server</div>
+          <div class="card-cmd">box64 ./bedrock_server</div>
+          <div class="card-badge bedrock-badge">BEDROCK EDITION</div>
+          <div class="card-check" id="check-bedrock">✓</div>
+        </div>
+
+      </div>
+
+      <div class="bottom">
+        <div class="selected-info">
+          <span class="dot pending" id="sel-dot"></span>
+          <span id="selected-text">No server selected</span>
+        </div>
+        <button class="btn btn-green launch-btn" id="launch-btn" onclick="launch()" disabled>
+          LAUNCH CONTROL PANEL →
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/index.js"></script>
+</body>
+</html>

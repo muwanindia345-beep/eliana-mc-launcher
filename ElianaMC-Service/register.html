@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0a0a0f"/>
+  <title>ElianaMC — Register</title>
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/auth.css"/>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="auth-page">
+
+    <!-- Logo -->
+    <div class="auth-logo">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">ELIANA<span>MC</span></span>
+    </div>
+
+    <!-- Card -->
+    <div class="auth-card">
+
+      <div class="auth-title">CREATE ACCOUNT</div>
+      <div class="auth-sub">Join ElianaMC Service</div>
+
+      <!-- Banners -->
+      <div class="auth-banner error"   id="error-banner"></div>
+      <div class="auth-banner success" id="success-banner"></div>
+
+      <!-- Username -->
+      <div class="field-group">
+        <label class="field-label">USERNAME</label>
+        <div class="field-wrap">
+          <span class="field-icon">👤</span>
+          <input
+            type="text"
+            class="field-input"
+            id="username"
+            placeholder="YourName"
+            oninput="clearErrors()"
+          />
+        </div>
+        <div class="field-hint" id="username-hint"></div>
+      </div>
+
+      <!-- Email -->
+      <div class="field-group">
+        <label class="field-label">EMAIL</label>
+        <div class="field-wrap">
+          <span class="field-icon">📧</span>
+          <input
+            type="email"
+            class="field-input"
+            id="email"
+            placeholder="you@example.com"
+            oninput="clearErrors()"
+          />
+        </div>
+        <div class="field-hint" id="email-hint"></div>
+      </div>
+
+      <!-- Password -->
+      <div class="field-group">
+        <label class="field-label">PASSWORD</label>
+        <div class="field-wrap">
+          <span class="field-icon">🔑</span>
+          <input
+            type="password"
+            class="field-input"
+            id="password"
+            placeholder="Min 8 characters"
+            oninput="checkPassword()"
+          />
+          <span class="field-eye" onclick="togglePass('password', this)">👁️</span>
+        </div>
+        <!-- Strength meter -->
+        <div class="strength-bar">
+          <div class="strength-fill" id="strength-fill"></div>
+        </div>
+        <div class="field-hint" id="strength-label"></div>
+      </div>
+
+      <!-- Confirm Password -->
+      <div class="field-group">
+        <label class="field-label">CONFIRM PASSWORD</label>
+        <div class="field-wrap">
+          <span class="field-icon">🔒</span>
+          <input
+            type="password"
+            class="field-input"
+            id="confirm"
+            placeholder="Repeat password"
+            oninput="checkConfirm()"
+          />
+          <span class="field-eye" onclick="togglePass('confirm', this)">👁️</span>
+        </div>
+        <div class="field-hint" id="confirm-hint"></div>
+      </div>
+
+      <!-- Submit -->
+      <button class="auth-btn" id="register-btn" onclick="register()">
+        <span id="btn-text">CREATE ACCOUNT</span>
+        <span id="btn-loader" class="btn-loader" style="display:none">⏳</span>
+      </button>
+
+      <!-- Login link -->
+      <div class="auth-footer">
+        Already have an account?
+        <a href="login.html" class="auth-link">Sign in</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>

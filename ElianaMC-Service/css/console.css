@@ -1,0 +1,372 @@
+/* ===== css/console.css ===== */
+
+.console-page {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(14px, 2.5vw, 28px) clamp(12px, 2.5vw, 24px);
+  min-height: calc(100vh - var(--nav-h));
+  min-height: calc(100dvh - var(--nav-h));
+  gap: clamp(12px, 2vw, 20px);
+}
+
+/* ── Top Row ───────────────────────────────────── */
+.top-row {
+  display: flex;
+  gap: clamp(10px, 2vw, 16px);
+  flex-wrap: wrap;
+  align-items: stretch;
+  width: 100%;
+}
+
+/* ── Mini Fan Box ──────────────────────────────── */
+.mini-fan-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: clamp(10px, 2vw, 16px);
+  padding: clamp(14px, 2.5vw, 22px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.5vw, 12px);
+  min-width: clamp(100px, 25vw, 150px);
+}
+
+.mini-fan-wrap {
+  width: clamp(64px, 16vw, 90px);
+  height: clamp(64px, 16vw, 90px);
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-fan {
+  width: 84%;
+  height: 84%;
+  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-fan.stopped    { animation: none; }
+.mini-fan.slow       { animation: spin 2.2s linear infinite; }
+.mini-fan.fast       { animation: spin 0.28s linear infinite; }
+
+.mini-blade {
+  position: absolute;
+  width: 36%;
+  height: 13%;
+  border-radius: 50% 50% 50% 0;
+  top: 50%;
+  left: 50%;
+  transform-origin: 0 0;
+  background: linear-gradient(135deg, #1a1a2e, #0d0d1a);
+  border: 1px solid rgba(0,255,128,0.18);
+}
+
+.mb-1 { transform: rotate(0deg)   translate(-50%,-50%) skewX(-10deg); }
+.mb-2 { transform: rotate(90deg)  translate(-50%,-50%) skewX(-10deg); }
+.mb-3 { transform: rotate(180deg) translate(-50%,-50%) skewX(-10deg); }
+.mb-4 { transform: rotate(270deg) translate(-50%,-50%) skewX(-10deg); }
+
+.mini-hub {
+  position: absolute;
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  z-index: 2;
+}
+
+.mini-rpm {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+#mini-rpm-value {
+  font-size: clamp(1rem, 3.5vw, 1.5rem);
+  font-weight: bold;
+  color: var(--green);
+  text-shadow: 0 0 10px rgba(0,255,128,0.3);
+  min-width: clamp(40px, 10vw, 60px);
+  text-align: right;
+  transition: color 0.5s;
+}
+
+.mini-rpm-unit {
+  font-size: var(--fs-xs);
+  letter-spacing: 2px;
+  color: var(--mid);
+}
+
+.mini-label {
+  font-size: var(--fs-xs);
+  letter-spacing: clamp(2px, 0.5vw, 4px);
+  color: var(--dim);
+  text-transform: uppercase;
+  transition: color 0.5s;
+}
+
+.mini-label.started    { color: var(--green);  }
+.mini-label.starting   { color: var(--orange); }
+.mini-label.restarting { color: var(--orange); }
+.mini-label.stopping   { color: var(--red);    }
+
+/* ── Data Centre Box ───────────────────────────── */
+.datacenter-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: clamp(10px, 2vw, 16px);
+  padding: clamp(12px, 2vw, 18px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.5vw, 12px);
+  min-width: clamp(150px, 30vw, 220px);
+  flex: 1;
+}
+
+.dc-screen {
+  background: #000;
+  border: 1px solid #1a2a1a;
+  border-radius: 6px;
+  padding: clamp(8px, 1.5vw, 12px);
+  position: relative;
+  overflow: hidden;
+  height: clamp(72px, 14vw, 96px);
+}
+
+.dc-screen-inner { position: relative; z-index: 1; }
+
+.dc-line {
+  font-size: clamp(0.52rem, 1.3vw, 0.65rem);
+  color: #00ff80;
+  letter-spacing: 1px;
+  line-height: 1.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dc-scanline {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.dc-body {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 1.5vw, 12px);
+}
+
+.dc-led {
+  width: clamp(6px, 1.5vw, 9px);
+  height: clamp(6px, 1.5vw, 9px);
+  border-radius: 50%;
+  background: var(--dim);
+  transition: all 0.5s;
+  flex-shrink: 0;
+}
+
+.dc-led.online  { background: var(--green);  box-shadow: 0 0 7px var(--green);  animation: blink 2s infinite; }
+.dc-led.offline { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+.dc-led.pending { background: var(--orange); box-shadow: 0 0 6px var(--orange); animation: blink 0.5s infinite; }
+
+.dc-label {
+  font-size: var(--fs-xs);
+  letter-spacing: 2px;
+  color: var(--dim);
+  flex: 1;
+}
+
+.dc-slots { display: flex; gap: 3px; }
+
+.dc-slot {
+  width: clamp(10px, 2.5vw, 16px);
+  height: clamp(5px, 1vw, 7px);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+}
+
+/* ── Connection Box ────────────────────────────── */
+.conn-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: clamp(10px, 2vw, 16px);
+  padding: clamp(14px, 2.5vw, 22px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.5vw, 14px);
+  flex: 1;
+  min-width: clamp(160px, 35vw, 240px);
+}
+
+.conn-title {
+  font-size: var(--fs-xs);
+  letter-spacing: 4px;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+.conn-row {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 1.5vw, 10px);
+}
+
+.conn-label {
+  font-size: var(--fs-xs);
+  letter-spacing: 2px;
+  color: var(--dim);
+  min-width: clamp(60px, 15vw, 90px);
+  text-transform: uppercase;
+}
+
+.conn-val {
+  font-size: var(--fs-xs);
+  letter-spacing: 2px;
+  color: var(--mid);
+}
+
+.clear-btn {
+  padding: clamp(7px, 1.5vw, 10px) clamp(12px, 2.5vw, 18px);
+  font-size: var(--fs-xs);
+  letter-spacing: 2px;
+  margin-top: auto;
+  align-self: flex-start;
+  border-radius: 6px;
+}
+
+/* ── Console ───────────────────────────────────── */
+.console-wrap {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: clamp(10px, 2vw, 16px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: clamp(300px, 45vh, 500px);
+}
+
+.console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(10px, 2vw, 14px) clamp(14px, 3vw, 22px);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.console-title {
+  font-size: var(--fs-sm);
+  letter-spacing: clamp(2px, 0.5vw, 4px);
+  color: var(--green);
+}
+
+.console-tag {
+  font-size: var(--fs-xs);
+  letter-spacing: 2px;
+  color: var(--dim);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 3px clamp(8px, 2vw, 12px);
+  border-radius: 10px;
+}
+
+.console-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: clamp(12px, 2vw, 18px);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: clamp(0.62rem, 1.5vw, 0.75rem);
+  line-height: 1.65;
+}
+
+.console-welcome {
+  color: var(--mid);
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.log-line {
+  display: flex;
+  gap: clamp(6px, 1.5vw, 12px);
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.018);
+  word-break: break-all;
+}
+
+.log-time {
+  color: var(--dim);
+  flex-shrink: 0;
+  font-size: clamp(0.55rem, 1.2vw, 0.65rem);
+  padding-top: 1px;
+}
+
+.log-msg         { color: #bbb; }
+.log-msg.info    { color: #999; }
+.log-msg.warn    { color: var(--orange); }
+.log-msg.error   { color: var(--red); }
+.log-msg.success { color: var(--green); }
+.log-msg.system  { color: var(--blue); }
+
+/* Console Input */
+.console-input-row {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 2vw, 14px);
+  padding: clamp(10px, 2vw, 14px) clamp(12px, 2.5vw, 18px);
+  border-top: 1px solid var(--border);
+  background: var(--bg3);
+}
+
+.console-prompt {
+  font-size: var(--fs-sm);
+  color: var(--green);
+  letter-spacing: 2px;
+  flex-shrink: 0;
+}
+
+.console-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  letter-spacing: 1px;
+  min-width: 0;
+}
+
+.console-input::placeholder { color: var(--dim); }
+
+.send-btn {
+  padding: clamp(7px, 1.5vw, 10px) clamp(14px, 3vw, 22px);
+  font-size: var(--fs-xs);
+  letter-spacing: 2px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+

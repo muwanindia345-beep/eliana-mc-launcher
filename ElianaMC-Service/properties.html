@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0a0a0f"/>
+  <title>ElianaMC — Properties</title>
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/properties.css"/>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+
+  <nav class="navbar">
+    <span class="logo">⚡ ELIANA<span>MC</span></span>
+    <div class="nav-links">
+      <a href="index.html"      class="nav-link">SELECT</a>
+      <a href="control.html"    class="nav-link">CONTROL</a>
+      <a href="console.html"    class="nav-link">CONSOLE</a>
+      <a href="properties.html" class="nav-link active">PROPERTIES</a>
+    </div>
+  </nav>
+
+  <div class="page">
+    <div class="props-page">
+
+      <!-- Header -->
+      <div class="props-header">
+        <div>
+          <div class="props-title">SERVER PROPERTIES</div>
+          <div class="props-sub" id="props-sub">Loading...</div>
+        </div>
+        <div class="props-actions">
+          <button class="btn btn-green" onclick="saveProps()">💾 SAVE</button>
+          <button class="btn btn-orange" onclick="reloadProps()">↺ RELOAD</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-basic"    onclick="switchTab('basic')">BASIC</button>
+        <button class="tab-btn"        id="tab-world"    onclick="switchTab('world')">WORLD</button>
+        <button class="tab-btn"        id="tab-network"  onclick="switchTab('network')">NETWORK</button>
+        <button class="tab-btn"        id="tab-advanced" onclick="switchTab('advanced')">ADVANCED</button>
+      </div>
+
+      <!-- Save banner -->
+      <div class="save-banner" id="save-banner">
+        ⚠️ Unsaved changes — restart server to apply
+      </div>
+
+      <!-- Basic Tab -->
+      <div class="tab-content active" id="content-basic">
+        <div class="props-grid" id="grid-basic"></div>
+      </div>
+
+      <!-- World Tab -->
+      <div class="tab-content" id="content-world">
+        <div class="props-grid" id="grid-world"></div>
+      </div>
+
+      <!-- Network Tab -->
+      <div class="tab-content" id="content-network">
+        <div class="props-grid" id="grid-network"></div>
+      </div>
+
+      <!-- Advanced Tab -->
+      <div class="tab-content" id="content-advanced">
+        <div class="props-grid" id="grid-advanced"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/properties.js"></script>
+</body>
+</html>
