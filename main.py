@@ -31,7 +31,8 @@ def serve_file(filename):
         return "Not found", 404
 
 def run_bot(bot_file):
-    subprocess.run(['python', bot_file], cwd='/app')
+    base = os.path.dirname(os.path.abspath(__file__))
+    subprocess.run(['python', bot_file], cwd=base)
 
 # ── Keep Render awake ──
 def keep_alive():
