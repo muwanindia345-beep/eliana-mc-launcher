@@ -23,11 +23,14 @@ if __name__ == '__main__':
     # Dono bots alag threads mein chalao
     t1 = threading.Thread(target=run_bot, args=['generator_bot.py'])
     t2 = threading.Thread(target=run_bot, args=['transformer_bot.py'])
+    t3 = threading.Thread(target=run_bot, args=['satellite_bot.py'])
     t1.daemon = True
     t2.daemon = True
+    t3.daemon = True
     t1.start()
     t2.start()
-    print("✅ Both bots started!")
+    t3.start()
+    print("✅ All 3 bots started!")
 
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)
