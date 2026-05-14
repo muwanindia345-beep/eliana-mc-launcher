@@ -1,6 +1,6 @@
 // ===== js/auth.js =====
 
-const AUTH_BASE = 'http://localhost:8008';
+const AUTH_BASE = 'https://minecraft-hosting-backend.onrender.com';
 
 // ── Helpers ───────────────────────────────────────
 function showError(msg) {
