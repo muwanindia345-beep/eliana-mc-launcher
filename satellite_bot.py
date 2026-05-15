@@ -140,7 +140,7 @@ def E_telemetry():
     e.add_field(name="❄️ Cold Side",  value=f"`{sat.cold}°C`",       inline=True)
     e.add_field(name="💻 CPU",        value=f"`{sat.cpu}°C`",         inline=True)
     e.add_field(name="📡 Signal",     value=f"`{sat.signal}%`",       inline=True)
-    e.add_field(name="🔄 Orbit",    value=f"`{sat.orbit}`",         inline=True)
+    e.add_field(name="🔄 Orbit #",    value=f"`{sat.orbit}`",         inline=True)
     e.add_field(name="📦 Packets",    value=f"`{sat.pkts:,}`",        inline=True)
     e.add_field(name="⏱️ Uptime",     value=f"`{sat.uptime_str()}`", inline=True)
     e.add_field(name="✅ Status",     value=f"`{st}`",                inline=True)
@@ -345,4 +345,3 @@ if __name__=="__main__":
     if not TOKEN: print("❌ DISCORD_TOKEN not set!"); exit(1)
     print("🛰️  Launching SATELLITE-01…")
     bot.run(TOKEN)
-
