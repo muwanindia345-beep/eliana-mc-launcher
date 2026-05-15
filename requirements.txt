@@ -1,4 +1,4 @@
-discord.py==2.3.2
-requests==2.31.0
-flask==3.0.0
-audioop-lts==0.2.1
+discord.py
+python-dotenv
+flask
+requests==2.30.0
