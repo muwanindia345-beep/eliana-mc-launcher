@@ -5,7 +5,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("GENERATOR_BOT_TOKEN")
 
 GEN_PANEL   = 1504368500238454814
 GEN_LIVE    = 1504368557289635880

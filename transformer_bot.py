@@ -5,7 +5,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("TRANSFORMER_BOT_TOKEN")
 
 TRF_PANEL = 1504049318959648852
 TRF_LIVE  = 1504049124591403129
