@@ -17,7 +17,7 @@ jobs:
 
       - name: Download APK from EAS
         run: |
-          curl -L "${{ github.event.client_payload.apk_url }}" -o eliana.apk || echo "APK download skipped"
+          curl -L "${{ github.event.client_payload.apk_url }}" -o eliana.apk || echo "skipped"
           SIZE=$(du -m eliana.apk 2>/dev/null | cut -f1 || echo "54")
           echo "SIZE_MB=$SIZE" >> $GITHUB_ENV
 
@@ -53,6 +53,21 @@ jobs:
 
       - name: Notify Discord
         run: |
+          APK_URL="https://github.com/muwanindia345-beep/eliana-mc-launcher/releases/download/v${{ github.event.client_payload.version }}/eliana.apk"
+          RELEASE_URL="https://github.com/muwanindia345-beep/eliana-mc-launcher/releases/tag/v${{ github.event.client_payload.version }}"
           curl -H "Content-Type: application/json" \
-          -d "{\"embeds\":[{\"title\":\"🚀 ElianaMC Update — v${{ github.event.client_payload.version }}\",\"description\":\"\`\`\`${{ github.event.client_payload.changelog }}\`\`\`\",\"color\":16744192,\"fields\":[{\"name\":\"📦 Size\",\"value\":\"${{ env.SIZE_MB }} MB\",\"inline\":true},{\"name\":\"📅 Date\",\"value\":\"$(date +%Y-%m-%d)\",\"inline\":true},{\"name\":\"📲 Update karo\",\"value\":\"App open karo → CHECK FOR UPDATE tap karo\"}],\"footer\":{\"text\":\"ElianaMC Auto-Release System\"}}]}" \
+          -d "{
+            \"embeds\": [{
+              \"title\": \"🚀 ElianaMC Launcher — v${{ github.event.client_payload.version }}\",
+              \"description\": \"\`\`\`${{ github.event.client_payload.changelog }}\`\`\`\",
+              \"color\": 16744192,
+              \"fields\": [
+                {\"name\": \"📦 Size\", \"value\": \"${{ env.SIZE_MB }} MB\", \"inline\": true},
+                {\"name\": \"📅 Date\", \"value\": \"$(date +%Y-%m-%d)\", \"inline\": true},
+                {\"name\": \"📲 How to update\", \"value\": \"Open ElianaMC app → tap **CHECK FOR UPDATE**\", \"inline\": false},
+                {\"name\": \"⬇ Direct Download\", \"value\": \"[Download APK](${APK_URL})\", \"inline\": false}
+              ],
+              \"footer\": {\"text\": \"ElianaMC Auto-Release System\"}
+            }]
+          }" \
           "${{ secrets.DISCORD_WEBHOOK_URL }}"
