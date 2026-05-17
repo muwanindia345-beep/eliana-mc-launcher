@@ -1,0 +1,75 @@
+name: Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.0.1)'
+        required: true
+      apk_url:
+        description: 'EAS APK download URL'
+        required: true
+      size_mb:
+        description: 'APK size in MB'
+        required: true
+      changelog:
+        description: 'Changelog'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download APK
+        run: |
+          curl -L "${{ github.event.inputs.apk_url }}" -o eliana.apk
+
+      - name: Update version.json
+        run: |
+          cat > version.json << JSONEOF
+          {
+            "version": "${{ github.event.inputs.version }}",
+            "size_mb": "${{ github.event.inputs.size_mb }}",
+            "changelog": "${{ github.event.inputs.changelog }}",
+            "apk_url": "https://github.com/muwanindia345-beep/eliana-mc-launcher/releases/download/v${{ github.event.inputs.version }}/eliana.apk",
+            "date": "$(date +%Y-%m-%d)"
+          }
+          JSONEOF
+
+      - name: Commit version.json
+        run: |
+          git config user.email "bot@eliana.mc"
+          git config user.name "ElianaMC Bot"
+          git add version.json
+          git commit -m "release: v${{ github.event.inputs.version }}"
+          git push
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: ElianaMC v${{ github.event.inputs.version }}
+          body: ${{ github.event.inputs.changelog }}
+          files: eliana.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Discord
+        run: |
+          curl -H "Content-Type: application/json" \
+          -d "{
+            \"embeds\": [{
+              \"title\": \"🚀 ElianaMC Update — v${{ github.event.inputs.version }}\",
+              \"description\": \"${{ github.event.inputs.changelog }}\",
+              \"color\": 16744192,
+              \"fields\": [
+                {\"name\": \"📦 Size\", \"value\": \"${{ github.event.inputs.size_mb }} MB\", \"inline\": true},
+                {\"name\": \"📅 Date\", \"value\": \"$(date +%Y-%m-%d)\", \"inline\": true},
+                {\"name\": \"📲 Update karo\", \"value\": \"ElianaMC app → Check for Update button\"}
+              ],
+              \"footer\": {\"text\": \"ElianaMC Auto-Release System\"}
+            }]
+          }" \
+          ${{ secrets.DISCORD_WEBHOOK_URL }}
