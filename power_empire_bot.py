@@ -583,6 +583,14 @@ async def cmd_empire(ctx):
     e.add_field(name="🔭 JWST",       value="`!webb`",inline=False)
     await ctx.send(embed=e)
 
+@bot.tree.command(name="roles", description="Get all role IDs")
+async def roles(interaction: discord.Interaction):
+    msg = "**📋 SERVER ROLES & IDs**\n```\n"
+    for role in interaction.guild.roles:
+        msg += f"{role.name:<25} {role.id}\n"
+    msg += "```"
+    await interaction.response.send_message(msg, ephemeral=True)
+
 # ══════════════════════════════════════════════════
 #  ON READY
 # ══════════════════════════════════════════════════
