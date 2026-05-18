@@ -1,4 +1,6 @@
 import os, json, math, datetime, random, requests, asyncio, re
+from dotenv import load_dotenv
+load_dotenv()
 from pathlib import Path
 from discord.ext import commands, tasks
 import discord
@@ -434,14 +436,14 @@ async def find_or_update(ch_id, embed, view=None, msg_dict=None, key=None):
     except Exception as ex:
         print(f"Update error: {ex}")
 
-@tasks.loop(seconds=5)
+@tasks.loop(seconds=30)
 async def gen_task():
     calc_gen(); save_gen()
     await find_or_update(GEN_LIVE,    gen_live_embed(),  None,      gen_msg, "live")
     await find_or_update(GEN_PANEL,   gen_panel_embed(), GenPanel(),gen_msg, "panel")
     await find_or_update(GEN_WEBLINK, gen_web_embed(),   None,      gen_msg, "web")
 
-@tasks.loop(seconds=5)
+@tasks.loop(seconds=30)
 async def trf_task():
     global last_alert
     calc_trf(); save_trf()
@@ -456,7 +458,7 @@ async def trf_task():
                 await ch.send(f"🌡️ **HIGH TEMPERATURE!** Temp: {trf['temp_c']}°C")
             last_alert = ""
 
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=30)
 async def sat_task():
     ch = bot.get_channel(DATA_CH)
     if not ch: return
