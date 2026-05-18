@@ -205,29 +205,39 @@ async def update():
         ("panel", GEN_PANEL,   panel_embed(), GenPanel()),
         ("web",   GEN_WEBLINK, web_embed(),   None),
     ]
-    changed = False
     for key, ch_id, embed, view in jobs:
         ch = client.get_channel(ch_id)
         if not ch: continue
         try:
+            # Step 1: ID se try karo
             if msg_ids[key]:
-                msg = await ch.fetch_message(msg_ids[key])
-                if view:
-                    await msg.edit(embed=embed, view=view)
-                else:
-                    await msg.edit(embed=embed)
-            else:
+                try:
+                    msg = await ch.fetch_message(msg_ids[key])
+                    await msg.edit(embed=embed, view=view) if view else await msg.edit(embed=embed)
+                    continue
+                except discord.NotFound:
+                    msg_ids[key] = None
+
+            # Step 2: History mein dhundo
+            found = False
+            async for old in ch.history(limit=30):
+                if old.author == client.user:
+                    msg_ids[key] = old.id
+                    save_msg_ids()
+                    await old.edit(embed=embed, view=view) if view else await old.edit(embed=embed)
+                    print(f"♻️ {key}: reused!")
+                    found = True
+                    break
+
+            # Step 3: Nahi mila toh naya
+            if not found:
                 msg = await ch.send(embed=embed, view=view) if view else await ch.send(embed=embed)
                 msg_ids[key] = msg.id
-                changed = True
-        except discord.NotFound:
-            msg_ids[key] = None
-            changed = True
-            print(f"Gen {key}: message not found, will recreate")
+                save_msg_ids()
+                print(f"📨 {key}: new message sent")
+
         except Exception as ex:
-            print(f"Gen {key}: {ex}")
-    if changed:
-        save_msg_ids()
+            print(f"❌ {key}: {ex}")
 
 @tree.command(name="gen_refresh", description="Refresh generator channels")
 async def gen_refresh(interaction: discord.Interaction):
