@@ -240,38 +240,50 @@ async def update():
         ("live",  TRF_LIVE,  live_embed(),  None),
         ("panel", TRF_PANEL, panel_embed(), TrfPanel()),
     ]
-    changed = False
     for key, ch_id, embed, view in jobs:
         ch = client.get_channel(ch_id)
         if not ch: continue
         try:
+            # Step 1: ID se try
             if msg_ids[key]:
-                msg = await ch.fetch_message(msg_ids[key])
-                if view: await msg.edit(embed=embed, view=view)
-                else: await msg.edit(embed=embed)
-            else:
+                try:
+                    msg = await ch.fetch_message(msg_ids[key])
+                    await msg.edit(embed=embed, view=view) if view else await msg.edit(embed=embed)
+                    continue
+                except discord.NotFound:
+                    msg_ids[key] = None
+
+            # Step 2: History mein dhundo
+            found = False
+            async for old in ch.history(limit=30):
+                if old.author == client.user:
+                    msg_ids[key] = old.id
+                    save_msg_ids()
+                    await old.edit(embed=embed, view=view) if view else await old.edit(embed=embed)
+                    print(f"♻️ Trf {key}: reused!")
+                    found = True
+                    break
+
+            # Step 3: Naya bhejo
+            if not found:
                 msg = await ch.send(embed=embed, view=view) if view else await ch.send(embed=embed)
                 msg_ids[key] = msg.id
-                changed = True
-        except discord.NotFound:
-            msg_ids[key] = None
-            changed = True
-            print(f"Trf {key}: message not found, will recreate")
-        except Exception as ex:
-            print(f"Trf {key}: {ex}")
-    if changed:
-        save_msg_ids()
+                save_msg_ids()
+                print(f"📨 Trf {key}: new sent")
 
-    # Alerts — send once only
+        except Exception as ex:
+            print(f"❌ Trf {key}: {ex}")
+
+    # Alerts
     alert_ch = client.get_channel(TRF_ALERT)
     if alert_ch and last_alert:
         if last_alert == "OVERLOAD":
-            await alert_ch.send(f"⚠️ **TRANSFORMER OVERLOAD!** Load: {trf['load_pct']}%")
+            await alert_ch.send(f"⚠️ **OVERLOAD!** Load: {trf['load_pct']}%")
         elif last_alert == "TEMP":
-            await alert_ch.send(f"🌡️ **HIGH TEMPERATURE!** Temp: {trf['temp_c']}°C")
+            await alert_ch.send(f"🌡️ **HIGH TEMP!** {trf['temp_c']}°C")
         elif last_alert == "TRIP":
-            await alert_ch.send(f"☠️ **AUTO TRIP! TRANSFORMER OFFLINE!** Load was: {trf['load_pct']}%")
-        last_alert = ""  # ← reset after sending, not in calc()
+            await alert_ch.send(f"☠️ **AUTO TRIP!** Load was: {trf['load_pct']}%")
+        last_alert = ""
 
 @tree.command(name="trf_refresh", description="Refresh transformer channels")
 async def trf_refresh(interaction: discord.Interaction):
