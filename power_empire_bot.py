@@ -4,6 +4,7 @@ load_dotenv()
 from pathlib import Path
 from discord.ext import commands, tasks
 import discord
+import bio_feed
 
 # ══════════════════════════════════════════════════
 #  CONFIG
@@ -598,6 +599,7 @@ async def roles(interaction: discord.Interaction):
 async def on_ready():
     print(f"✅ Power Empire Bot online — {bot.user}")
     await bot.tree.sync()
+    await bio_feed.setup(bot)
     bot.add_view(GenPanel())
     bot.add_view(TrfPanel())
     gen_task.start()
