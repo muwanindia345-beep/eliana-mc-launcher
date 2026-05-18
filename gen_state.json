@@ -1,1 +1,1 @@
-{}
+{"on": true, "emergency": false, "rpm": 2277.1271934481974, "voltage_v": 315.0, "freq_hz": 37.95, "current_a": 506.2, "power_kw": 234.76, "power_kva": 276.19, "pf": 0.85, "temp_c": 27.5, "status": "RUNNING"}
